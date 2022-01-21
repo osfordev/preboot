@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "binary"
+		},
+		{
+			"path": "builder"
+		},
+		{
+			"path": "httpboot"
+		},
+		{
+			"path": "toolchain"
+		},
+		{
+			"name": "workspace",
+			"path": "."
+		}
+	],
+	"settings": {}
+}
