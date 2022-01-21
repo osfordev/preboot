@@ -1,0 +1,6 @@
+preboot.build/
+.*/
+*.local*
+
+!.github/
+!.vscode/

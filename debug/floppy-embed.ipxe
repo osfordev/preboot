@@ -1,0 +1,23 @@
+#!ipxe
+
+#
+# 1) Complile iPXE floppy boot loader using this file as embed config
+#   git clone git://git.ipxe.org/ipxe.git
+#   make bin/ipxe.dsk EMBED=floppy-embed.ipxe
+# 2) Use bin/ipxe.dsk as floppy disk image in Virtual Box
+# 3) Create virtual machine with host-only network 192.168.56.0/24. Use host IP 192.168.56.1.
+# 4) Run HTTP server to serve your build (do not forget allow access in firewall for VMs)
+#   npm install -g http-server
+#   http-server $PWD/<YOUR_SITE>/boot -a 192.168.56.1 -p 8080
+#
+
+
+set esc:hex 1b            # ANSI escape character - \"^[\""
+set cls ${esc:string}[2J  # ANSI clear screen sequence - \"^[[2J\""
+echo ${cls}
+
+echo Floppy boot loader is started
+
+dhcp ||	reboot
+route || reboot
+chain http://192.168.56.1:8080/chain.ipxe || reboot

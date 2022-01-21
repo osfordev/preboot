@@ -1,0 +1,20 @@
+#!ipxe
+
+#
+# This is chain loader addon for floppy-embed.ipxe
+# Copy this file into YOUR_SITE/boot directory and change for your needs
+#
+
+echo
+echo Chain boot loader is started
+
+dhcp || reboot
+route || reboot
+
+echo Booting Kernel and Initramfs from http://192.168.56.1:8080 in 5 seconds
+sleep 1
+
+kernel http://192.168.56.1:8080/vmlinuz || reboot
+initrd http://192.168.56.1:8080/initramfs.cpio.gz || reboot
+imgargs vmlinuz initrd=initramfs.cpio.gz z_shell=2 z_ip="eth0,192.168.56.42/24;eth1,10.0.0.42/8,10.0.0.254" z_pwd="P@ssw0rd" z_ssh z_md="md1,sda1,sdb1;md2,sda2,sdb2;md3,md1,md2" z_vg="vg0" z_snap="vg0/luks-root,250M;vg0/luks-home,250M" z_uncrypt="vg0/luks-root,uncrypted-root;vg0/luks-home,uncrypted-home,discard" z_fsck="vg0/luks-root;vg0/luks-home;md3" z_root="mapper/uncrypted-root,ext4,ro,discard" z_shell=8 || reboot
+boot || reboot

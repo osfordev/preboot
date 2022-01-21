@@ -1,0 +1,222 @@
+variables:
+  BUILD_IMAGE: docker:stable
+  DOCKER_BUILDKIT: 1
+  KERNEL_VERSION: 5.10.76-r1
+
+image: ${BUILD_IMAGE}
+
+stages:
+  - builders
+  - targets
+
+.framework:
+  publish_boot_artifacts:
+    - IMAGE_ARCH=$(cat /support/IMAGE_ARCH)
+    - if (echo "${KERNEL_VERSION}" | grep -q '-'); then KERNEL_SLUG=$(echo "${KERNEL_VERSION}" | awk -F- '{print $1 "-gentoo-" $2}'); else KERNEL_SLUG="${KERNEL_VERSION}-gentoo"; fi
+    - eval $(ssh-agent -s)
+    - echo "${OSFORDEV_FILE_SERVER_SSH_PRIVATE_KEY}" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - scp -o StrictHostKeyChecking=no "/data/build/boot/System.map-${KERNEL_SLUG}-${SITE}" "${OSFORDEV_FILE_SERVER_USER}@${OSFORDEV_FILE_SERVER_HOST}:/srv/files/osfordev/boot/${IMAGE_ARCH}/System.map-${KERNEL_SLUG}-${SITE}"
+    - sleep 60
+    - scp -o StrictHostKeyChecking=no "/data/build/boot/config-${KERNEL_SLUG}-${SITE}" "${OSFORDEV_FILE_SERVER_USER}@${OSFORDEV_FILE_SERVER_HOST}:/srv/files/osfordev/boot/${IMAGE_ARCH}/config-${KERNEL_SLUG}-${SITE}"
+    - sleep 60
+    - scp -o StrictHostKeyChecking=no "/data/build/boot/vmlinuz-${KERNEL_SLUG}-${SITE}" "${OSFORDEV_FILE_SERVER_USER}@${OSFORDEV_FILE_SERVER_HOST}:/srv/files/osfordev/boot/${IMAGE_ARCH}/vmlinuz-${KERNEL_SLUG}-${SITE}"
+    - sleep 60
+    - scp -o StrictHostKeyChecking=no "/data/build/boot/initramfs-${KERNEL_SLUG}-${SITE}.cpio.gz" "${OSFORDEV_FILE_SERVER_USER}@${OSFORDEV_FILE_SERVER_HOST}:/srv/files/osfordev/boot/${IMAGE_ARCH}/initramfs-${KERNEL_SLUG}-${SITE}.cpio.gz"
+    - sleep 60
+    - ssh -o StrictHostKeyChecking=no "${OSFORDEV_FILE_SERVER_USER}@${OSFORDEV_FILE_SERVER_HOST}" "cd \"/srv/files/osfordev/boot/${IMAGE_ARCH}\"  && chmod 644 \"System.map-${KERNEL_SLUG}-${SITE}\" \"config-${KERNEL_SLUG}-${SITE}\" \"vmlinuz-${KERNEL_SLUG}-${SITE}\" \"initramfs-${KERNEL_SLUG}-${SITE}.cpio.gz\" && ln --symbolic --force --no-dereference \"System.map-${KERNEL_SLUG}-${SITE}\" \"System.map-gentoo-${SITE}\" && ln --symbolic --force --no-dereference \"config-${KERNEL_SLUG}-${SITE}\" \"config-gentoo-${SITE}\" && ln --symbolic --force --no-dereference \"vmlinuz-${KERNEL_SLUG}-${SITE}\" \"vmlinuz-gentoo-${SITE}\" && ln --symbolic --force --no-dereference \"initramfs-${KERNEL_SLUG}-${SITE}.cpio.gz\" \"initramfs-gentoo-${SITE}.cpio.gz\""
+    - sleep 1
+    - echo "System.map-${KERNEL_SLUG}-${SITE} was published successfully."
+    - echo "config-${KERNEL_SLUG}-${SITE} was published successfully."
+    - echo "vmlinuz-${KERNEL_SLUG}-${SITE} was published successfully."
+    - echo "initramfs-${KERNEL_SLUG}-${SITE}.cpio.gz was published successfully."
+    - echo "See for https://dl.zxteam.net/osfordev/boot/"
+
+i686-builder:
+  stage: builders
+  tags:
+    - docker-builder-platform-support
+    - docker-builder-20
+  only:
+    - master
+    - tags
+  script:
+    # Build an image
+    - export DOCKER_IMAGE_NAME="${CI_REGISTRY_IMAGE}/i686"
+    - export VERSION_TAG_CURRENT="${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    - export VERSION_TAG_LATEST="${CI_COMMIT_REF_SLUG}"
+    - docker build ${DOCKER_ARGS}
+      --platform=i386
+      --file "docker/i686/Dockerfile"
+      --tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}"
+      --build-arg KERNEL_VERSION
+      .
+    # Login to the registry
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login --username "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+    # Make image tags
+    - docker tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}" "${DOCKER_IMAGE_NAME}:${VERSION_TAG_CURRENT}"
+    - docker tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}" "${DOCKER_IMAGE_NAME}:${VERSION_TAG_LATEST}"
+    - docker tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}" "${DOCKER_IMAGE_NAME}:latest"
+    # Publish tags
+    - docker push "${DOCKER_IMAGE_NAME}:${VERSION_TAG_CURRENT}"
+    - docker push "${DOCKER_IMAGE_NAME}:${VERSION_TAG_LATEST}"
+    - docker push "${DOCKER_IMAGE_NAME}:latest"
+    # Echo results
+    - echo "See README.md for 'docker run' command. The image ${DOCKER_IMAGE_NAME}:${VERSION_TAG_CURRENT}"
+    - echo "See README.md for 'docker run' command. The image ${DOCKER_IMAGE_NAME}:${VERSION_TAG_LATEST}"
+    - echo "See README.md for 'docker run' command. The image ${DOCKER_IMAGE_NAME}:latest"
+
+amd64-builder:
+  stage: builders
+  tags:
+    - docker-builder-platform-support
+    - docker-builder-20
+  only:
+    - master
+    - tags
+  script:
+    # Build an image
+    - export DOCKER_IMAGE_NAME="${CI_REGISTRY_IMAGE}/amd64"
+    - export VERSION_TAG_CURRENT="${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    - export VERSION_TAG_LATEST="${CI_COMMIT_REF_SLUG}"
+    - docker build ${DOCKER_ARGS}
+      --platform=amd64
+      --file "docker/amd64/Dockerfile"
+      --tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}"
+      --build-arg KERNEL_VERSION
+      .
+    # Login to the registry
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login --username "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+    # Make image tags
+    - docker tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}" "${DOCKER_IMAGE_NAME}:${VERSION_TAG_CURRENT}"
+    - docker tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}" "${DOCKER_IMAGE_NAME}:${VERSION_TAG_LATEST}"
+    - docker tag "image-${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}-${CI_JOB_ID}" "${DOCKER_IMAGE_NAME}:latest"
+    # Publish tags
+    - docker push "${DOCKER_IMAGE_NAME}:${VERSION_TAG_CURRENT}"
+    - docker push "${DOCKER_IMAGE_NAME}:${VERSION_TAG_LATEST}"
+    - docker push "${DOCKER_IMAGE_NAME}:latest"
+    # Echo results
+    - echo "See README.md for 'docker run' command. The image ${DOCKER_IMAGE_NAME}:${VERSION_TAG_CURRENT}"
+    - echo "See README.md for 'docker run' command. The image ${DOCKER_IMAGE_NAME}:${VERSION_TAG_LATEST}"
+    - echo "See README.md for 'docker run' command. The image ${DOCKER_IMAGE_NAME}:latest"
+
+
+asrockpv530aitx:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/i686:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=asrockpv530aitx
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]
+
+asusx402ca:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/amd64:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=asusx402ca
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]
+
+axx99v102a:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/amd64:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=axx99v102a
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]
+
+dellcs24sc:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/amd64:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=dellcs24sc
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]
+
+digitaloceanvm:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/amd64:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=digitaloceanvm
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]
+
+hp64xx:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/amd64:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=hp64xx
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]
+
+virtualboxvm:
+  stage: targets
+  image:
+    name: "${CI_REGISTRY_IMAGE}/amd64:${CI_COMMIT_REF_SLUG}.${CI_COMMIT_SHORT_SHA}"
+    entrypoint: ["/bin/sh", "-c"]
+  tags:
+    - docker-20
+  only:
+    - master
+    - tags
+  script:
+    - export SITE=virtualboxvm
+    - /support/docker-entrypoint.sh initconfig
+    - /support/docker-entrypoint.sh kernel
+    - /support/docker-entrypoint.sh initramfs
+    - !reference [.framework, publish_boot_artifacts]

@@ -1,0 +1,29 @@
+{
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"editor.tabSize": 4,
+	"editor.lineNumbers": "on",
+	"editor.renderControlCharacters": true,
+	"editor.renderWhitespace": "all",
+	"editor.rulers": [
+		80,
+		160,
+		240,
+		320
+	],
+	"editor.trimAutoWhitespace": true,
+	"editor.useTabStops": true,
+	"editor.wordWrapColumn": 1024,
+	"diffEditor.ignoreTrimWhitespace": false,
+	"files.autoSave": "afterDelay",
+	"files.autoSaveDelay": 5000,
+	"files.encoding": "utf8",
+	"files.eol": "\n",
+	"files.exclude": {
+		"**/.git": true
+	},
+	"files.insertFinalNewline": false,
+	"breadcrumbs.enabled": true,
+	"git.confirmSync": true,
+	"git.rebaseWhenSync": true
+}
