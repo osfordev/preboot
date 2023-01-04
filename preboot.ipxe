@@ -1,0 +1,20 @@
+#!ipxe
+
+
+:start
+dhcp && goto boot
+prompt --key s --timeout 1500 Press "s" for the iPXE command line... && shell
+goto start
+
+
+:boot
+dhcp
+# See about initrd= option for EFI Stub: https://docs.kernel.org/admin-guide/efi-stub.html
+kernel https://dl.zxteam.net/osfordev/preboot/vmlinuz initrd=initramfs.cpio.gz || goto boot_error
+initrd https://dl.zxteam.net/osfordev/preboot/initramfs.cpio.gz || goto boot_error
+boot || goto boot_error
+
+
+:boot_error
+sleep 10
+goto start
