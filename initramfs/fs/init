@@ -1,0 +1,53 @@
+#!/bin/busybox sh
+
+cat /BANNER
+
+info() {
+	if [ -z "$QUIET" ]; then
+		echo "[I] $1"
+	fi
+}
+warn() {
+	echo "[W] $1"
+}
+fatal() {
+	echo "[!] FATAL ERROR: $1"
+	echo 1 > /proc/sys/kernel/printk
+	echo ".Entering rescue shell."
+	exec /bin/busybox sh
+}
+
+set -o pipefail
+
+mount -n -t proc proc /proc || fatal "Failure mount /proc"
+echo 0 > /proc/sys/kernel/printk
+
+mount -n -t devtmpfs devtmpfs /dev || fatal "Failure mount /dev"
+mkdir -m 0755 /dev/pts || fatal "Failure create directory /dev/pts with perms 755"
+mount -n -t devpts -o gid=5,mode=0620 devpts /dev/pts || fatal "Failure mount /dev/pts"
+mount -n -t sysfs sysfs /sys || fatal "Failure mount /dev/pts"
+mount -n -t tmpfs -o rw,nodev,mode=755 none /run || fatal "Failure mount /run"
+
+# Set up busybox'es symlinks
+/bin/busybox --install -s || fatal "Failure install busybox symlinks"
+
+# touch /var/log/lastlog || fatal "Failure create /var/log/lastlog"
+
+# ln -s /proc/mounts /etc/mtab || fatal "Failure link /etc/mtab -> /proc/mounts"
+
+# OSFORDEV_VOLUME=osfordev
+OSFORDEV_VOLUME=vg0
+
+info "Scanning for volume groups ..."
+/sbin/vgscan || fatal "/sbin/vgscan: Failure scan volume groups"
+
+info "Activating volume group: '${OSFORDEV_VOLUME}' ..."
+/sbin/vgchange --activate y "${OSFORDEV_VOLUME}" || fatal "/sbin/vgchange: Failure activate volume '${OSFORDEV_VOLUME}'"
+
+info "Mounting logical volume 'system' ..."
+mount -o ro "/dev/${OSFORDEV_VOLUME}/system" /mnt || fatal "mount: Failure mount logical volume '/dev/${OSFORDEV_VOLUME}/system'"
+
+info "Loading kernel and initramfs into kexec ..."
+kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 z_vg=vg0 z_uncrypt=vg0/luks-home,uncrypted-home,discard;vg0/luks-registry,uncrypted-registry,discard;vg0/luks-swap,uncrypted-swap,discard z_root=vg0/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
+
+kexec --exec || fatal "kexec: Unable to execute."

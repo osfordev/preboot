@@ -1,0 +1,28 @@
+# https://wiki.gentoo.org/wiki/Early_Userspace_Mounting
+
+# directory structure
+dir /bin               755 0 0
+dir /dev               755 0 0
+dir /etc               755 0 0
+dir /lib               755 0 0
+dir /lib/modules       755 0 0
+dir /lib64             755 0 0
+dir /mnt               755 0 0
+dir /proc              755 0 0
+dir /root              700 0 0
+dir /run               755 0 0
+dir /sbin              755 0 0
+dir /sys               755 0 0
+dir /tmp               755 0 0
+dir /var               755 0 0
+dir /var/log           755 0 0
+dir /usr               755 0 0
+dir /usr/bin           755 0 0
+dir /usr/lib           755 0 0
+dir /usr/lib64         755 0 0
+dir /usr/sbin          755 0 0
+dir /usr/share         755 0 0
+
+#
+# NOTE: tools and modules will are added automatically by build.sh
+#
