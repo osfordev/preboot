@@ -21,6 +21,7 @@ RUN \
   emerge --quiet --oneshot \
     sys-apps/busybox \
     sys-apps/kexec-tools \
+    sys-boot/syslinux \
     sys-fs/lvm2 \
     sys-fs/mdadm
 

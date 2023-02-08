@@ -15,12 +15,15 @@ RUN \
   echo 'USE="-ipv6 -pam static static-libs -udev"' >> /etc/portage/make.conf && \
   echo 'sys-apps/busybox mdev -pam' >> /etc/portage/package.use && \
   echo 'sys-apps/util-linux -su' >> /etc/portage/package.use && \
-  echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use
+  echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use && \
+  echo 'sys-firmware/ipxe efi lkrn -qemu undi usb' >> /etc/portage/package.use
 
 RUN \
   emerge --quiet --oneshot \
     sys-apps/busybox \
     sys-apps/kexec-tools \
+    sys-boot/syslinux \
+    sys-firmware/ipxe \
     sys-fs/lvm2 \
     sys-fs/mdadm
 
