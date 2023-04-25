@@ -1,9 +1,9 @@
-# https://hub.docker.com/r/zxteamorg/gentoo-sources-bundle
-ARG GENTOO_SOURCES_BUDNLE_IMAGE_TAG=latest
+# https://hub.docker.com/r/theanurin/gentoo-sources-bundle
+ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 
 
 # Target container with Gentoo Linux + necessary tools to build kernel and initramfs
-FROM --platform=linux/arm64/v8 zxteamorg/gentoo-sources-bundle:${GENTOO_SOURCES_BUDNLE_IMAGE_TAG} as stage
+FROM --platform=linux/arm/v7 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} as stage
 
 RUN \
   emerge-webrsync
@@ -22,6 +22,13 @@ RUN \
   echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use
 
 RUN \
+  emerge  --quiet dev-vcs/git && \
+  cd /opt && \
+  git clone --depth 1 --branch v2023.04 https://source.denx.de/u-boot/u-boot.git && \
+  emerge  --quiet --unmerge dev-vcs/git && \
+  emerge  --quiet --depclean
+
+RUN \
   emerge --quiet --oneshot \
     sys-apps/busybox \
     sys-apps/kexec-tools \
@@ -35,19 +42,19 @@ RUN \
 RUN \
   cd /usr/src/linux && make -C usr/ gen_init_cpio && chmod +x usr/gen_init_cpio usr/gen_initramfs.sh
 
-RUN \
-  rm -rf /run/*; \
-  rm -rf /tmp/*; \
-  rm -rf /usr/share/man; \
-  rm -rf /var/cache/*; \
-  rm -rf /var/db/repos/*; \
-  rm -rf /var/log/*; \
-  rm -rf /var/tmp/*
+# RUN \
+#   rm -rf /run/*; \
+#   rm -rf /tmp/*; \
+#   rm -rf /usr/share/man; \
+#   rm -rf /var/cache/*; \
+#   rm -rf /var/db/repos/*; \
+#   rm -rf /var/log/*; \
+#   rm -rf /var/tmp/*
 
-COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh
+# COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh
 
 
-FROM scratch
-COPY --from=stage / /
-VOLUME [ "/cache" ]
-ENTRYPOINT [ "/usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh" ]
+# FROM scratch
+# COPY --from=stage / /
+# VOLUME [ "/cache" ]
+# ENTRYPOINT [ "/usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh" ]

@@ -1,0 +1,27 @@
+name: Build Toolchain Docker Image (Manual Trigger)
+
+on:
+  workflow_dispatch:
+    inputs:
+      toolchain_arch:
+        description: "Toolchain Architecture"
+        required: true
+        default: "amd64"
+        type: choice
+        options:
+          - "amd64"
+          - "arm32v7"
+          - "arm64v8"
+          - "i686"
+      kernel_version:
+        description: "Kernel version"
+        required: true
+        type: string
+
+jobs:
+  trigger:
+    if: github.ref == 'refs/heads/toolchain'
+    uses: "./.github/workflows/build-toolchain-docker-images.yml"
+    with:
+      kernel_version: "${{ inputs.kernel_version }}"
+      toolchain_arch: "${{ inputs.toolchain_arch }}"

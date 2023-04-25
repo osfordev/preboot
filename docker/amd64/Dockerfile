@@ -1,9 +1,9 @@
-# https://hub.docker.com/r/zxteamorg/gentoo-sources-bundle
-ARG GENTOO_SOURCES_BUDNLE_IMAGE_TAG=latest
+# https://hub.docker.com/r/theanurin/gentoo-sources-bundle
+ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 
 
 # Target container with Gentoo Linux + necessary tools to build kernel and initramfs
-FROM --platform=linux/amd64 zxteamorg/gentoo-sources-bundle:${GENTOO_SOURCES_BUDNLE_IMAGE_TAG} as stage
+FROM --platform=linux/amd64 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} as stage
 
 RUN \
   emerge-webrsync && \

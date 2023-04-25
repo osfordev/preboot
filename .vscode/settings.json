@@ -25,5 +25,11 @@
 	"files.insertFinalNewline": false,
 	"breadcrumbs.enabled": true,
 	"git.confirmSync": true,
-	"git.rebaseWhenSync": true
+	"git.rebaseWhenSync": true,
+	"cSpell.words": [
+		"Buildx",
+		"esac",
+		"osfordev",
+		"preboot"
+	]
 }

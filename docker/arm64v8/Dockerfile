@@ -3,16 +3,20 @@ ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 
 
 # Target container with Gentoo Linux + necessary tools to build kernel and initramfs
-FROM --platform=linux/386 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} as stage
+FROM --platform=linux/arm64/v8 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} as stage
 
 RUN \
-  emerge-webrsync && \
+  emerge-webrsync
+
+RUN \
+  rm -r /etc/portage/package.accept_keywords && \
   rm -r /etc/portage/package.use && \
   echo >> /etc/portage/make.conf && \
   echo '# OS For Dev Preboot toolchain' >> /etc/portage/make.conf && \
   echo 'ACCEPT_LICENSE="intel-ucode linux-fw-redistributable no-source-code"' >> /etc/portage/make.conf && \
   echo 'FEATURES="-ipc-sandbox -network-sandbox -pid-sandbox -sandbox -usersandbox"' >> /etc/portage/make.conf && \
   echo 'USE="-ipv6 -pam static static-libs -udev"' >> /etc/portage/make.conf && \
+  echo 'sys-apps/kexec-tools ~arm64' >> /etc/portage/package.accept_keywords && \
   echo 'sys-apps/busybox mdev -pam' >> /etc/portage/package.use && \
   echo 'sys-apps/util-linux -su' >> /etc/portage/package.use && \
   echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use
@@ -21,7 +25,6 @@ RUN \
   emerge --quiet --oneshot \
     sys-apps/busybox \
     sys-apps/kexec-tools \
-    sys-boot/syslinux \
     sys-fs/lvm2 \
     sys-fs/mdadm
 

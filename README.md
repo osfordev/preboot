@@ -8,23 +8,28 @@ Toolchain is a Docker image that includes all necessary sources/tools to be able
 
 0. Define vars
     ```shell
-    #export GENTOO_ARCH=arm64
-    export GENTOO_ARCH=amd64
-    #export GENTOO_ARCH=i668
+    #export TOOLCHAIN_ARCH=arm32v5
+    #export TOOLCHAIN_ARCH=arm32v6
+    #export TOOLCHAIN_ARCH=arm32v7
+    #export TOOLCHAIN_ARCH=arm64v8
+    export TOOLCHAIN_ARCH=amd64
+    #export TOOLCHAIN_ARCH=i668
     ```
 
 1. Build toolchain image (or use image from CI)
     ```bash
-    docker build --file docker/${GENTOO_ARCH}/Dockerfile --tag ghcr.io/osfordev/preboot/toolchain/${GENTOO_ARCH}:latest .
+    docker build --file docker/${TOOLCHAIN_ARCH}/Dockerfile --tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest .
     ```
 
-## Bump Kernel Version
+## Tags format
 
-Kernel version defined in `KERNEL_VERSION` file.
+`toolchain-<KERNEL_VERSION>-<TOOLCHAIN_ARCH>-<YYYYMMDD>`
 
-Name of tag should be suffixed by `-toolchain` relevant to kernel version like a:
+Relevant tag names like a:
 
-| Kernel Version | Tag Name             |
-|----------------|----------------------|
-| 5.15.80        | 5.15.80-toolchain    |
-| 4.9.25-r1      | 4.9.25-r1-toolchain  |
+| Kernel Version  | Docker Arch     | Tag Name                            |
+|-----------------|-----------------|-------------------------------------|
+| 5.15.80         | linux/amd64     | toolchain-5.15.80-amd64-YYYYMMDD    |
+| 5.15.80         | linux/arm/v7    | toolchain-5.15.80-arm32v7-YYYYMMDD  |
+| 5.15.80         | linux/arm64/v8  | toolchain-5.15.80-amd64v8-YYYYMMDD  |
+| 5.15.80         | linux/386       | toolchain-5.15.80-i686-YYYYMMDD     |
