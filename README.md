@@ -5,7 +5,7 @@ This is workspace branch of multi project repository based on [orphan](https://g
 Branches (sub-projects):
 
 * `binary` - Binaries history of preboot
-* `builder` - Build script to produce kernel, initrd, etc.
+* `builder` - Builder is a script that build preboot artifacts like kernel, initrd, etc.
 * `httpboot` - HTTP boot allows to load preboot from network. Include sources to build ipxe.efi, undionly.kpxe, etc.
 * `toolchain` - Toolchain is a Docker image that includes all necessary sources/tools to be able to build preboot artifacts like kernel, initrd, etc.
 
@@ -13,11 +13,11 @@ Branches (sub-projects):
 
 1. Clone the repository
 	```shell
-	git clone git@github.com:osfordev/boot.git osfordev.boot
+	git clone git@github.com:osfordev/preboot.git osfordev.preboot
 	```
 1. Enter into cloned directory
 	```shell
-	cd osfordev.boot
+	cd osfordev.preboot
 	```
 1. Initialize [worktree](https://git-scm.com/docs/git-worktree) by execute following commands:
 	```shell
@@ -25,7 +25,7 @@ Branches (sub-projects):
 	```
 1. Open VSCode Workspace
 	```shell
-	code "OS For Developers Boot.code-workspace"
+	code "OS For Developers PreBoot.code-workspace"
 	```
 
 

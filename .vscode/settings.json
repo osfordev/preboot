@@ -4,5 +4,10 @@
 		"**/builder": true,
 		"**/httpboot": true,
 		"**/toolchain": true,
-	}
+	},
+	"cSpell.words": [
+		"httpboot",
+		"osfordev",
+		"preboot"
+	]
 }
