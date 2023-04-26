@@ -1,15 +1,11 @@
 name: Build Toolchain Docker Image
 
 env:
-  DEFAULT_KERNEL_VERSION: "5.15.94"
-  DEFAULT_TOOLCHAIN_ARCH: "arm32v7"
   # Override path to GitHub Container Repository
   GHCR_REPOSITORY: "${{ github.repository }}"
 
 on:
   push:
-    # branches:
-    #   - toolchain
     tags:
       - "*-toolchain-*"
   workflow_call:
@@ -22,6 +18,8 @@ on:
         description: "Kernel version"
         required: true
         type: string
+
+run-name: Build Toolchain Docker Image ${{ inputs.kernel_version }}/${{ inputs.toolchain_arch }}
 
 jobs:
   configure:
@@ -49,8 +47,10 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
             KERNEL_VERSION=$(echo "${{ github.ref_name }}" | cut -f2 -d-)
+          elif [ -n "${{ inputs.kernel_version }}" ]; then
+            KERNEL_VERSION="${{ inputs.kernel_version }}"
           else
-            KERNEL_VERSION="${{ inputs.kernel_version || env.DEFAULT_KERNEL_VERSION }}"
+            echo "Unable to resolve KERNEL_VERSION" >&2
           fi
           echo "version=${KERNEL_VERSION}" >> $GITHUB_OUTPUT
 
@@ -59,8 +59,10 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
             TOOLCHAIN_ARCH=$(echo "${{ github.ref_name }}" | cut -f3 -d-)
+          elif [ -n "${{ inputs.kernel_version }}" ]; then
+            TOOLCHAIN_ARCH="${{ inputs.toolchain_arch }}"
           else
-            TOOLCHAIN_ARCH="${{ inputs.toolchain_arch || env.DEFAULT_TOOLCHAIN_ARCH }}"
+            echo "Unable to resolve TOOLCHAIN_ARCH" >&2
           fi
           echo "arch=${TOOLCHAIN_ARCH}" >> $GITHUB_OUTPUT
 
@@ -85,10 +87,12 @@ jobs:
             DOCKER_LATEST_TAG="latest"
             DOCKER_SHA_TAG="${{ github.ref_name }}.${{ needs.configure.outputs.commit_short_sha }}"
             DOCKER_VERSION_TAG="${KERNEL_VERSION}"
+            DOCKER_SUFFIX=""
           else
-            DOCKER_LATEST_TAG="snapshot"
-            DOCKER_SHA_TAG="snapshot.${{ github.sha }}"
-            DOCKER_VERSION_TAG="snapshot.${{ needs.configure.outputs.commit_short_sha }}"
+            DOCKER_LATEST_TAG="latest"
+            DOCKER_SHA_TAG="${{ github.sha }}"
+            DOCKER_VERSION_TAG="${{ needs.configure.outputs.commit_short_sha }}"
+            DOCKER_SUFFIX="/snapshot"
           fi
 
           case "${TOOLCHAIN_ARCH}" in
@@ -122,6 +126,7 @@ jobs:
           echo "DOCKER_LATEST_TAG=${DOCKER_LATEST_TAG}" | tee -a $GITHUB_ENV
           echo "DOCKER_VERSION_TAG=${DOCKER_VERSION_TAG}" | tee -a $GITHUB_ENV
           echo "DOCKER_SHA_TAG=${DOCKER_SHA_TAG}" | tee -a $GITHUB_ENV
+          echo "DOCKER_SUFFIX=${DOCKER_SUFFIX}" | tee -a $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -149,9 +154,9 @@ jobs:
           platforms: ${{ env.DOCKER_PLATFORM }}
           push: true
           tags: |
-            "ghcr.io/${{ env.GHCR_REPOSITORY }}/toolchain/${{ env.TOOLCHAIN_ARCH }}:${{ env.DOCKER_SHA_TAG }}"
-            "ghcr.io/${{ env.GHCR_REPOSITORY }}/toolchain/${{ env.TOOLCHAIN_ARCH }}:${{ env.DOCKER_VERSION_TAG }}"
-            "ghcr.io/${{ env.GHCR_REPOSITORY }}/toolchain/${{ env.TOOLCHAIN_ARCH }}:${{ env.DOCKER_LATEST_TAG }}"
+            "ghcr.io/${{ env.GHCR_REPOSITORY }}/toolchain/${{ env.TOOLCHAIN_ARCH }}${{ env.DOCKER_SUFFIX }}:${{ env.DOCKER_SHA_TAG }}"
+            "ghcr.io/${{ env.GHCR_REPOSITORY }}/toolchain/${{ env.TOOLCHAIN_ARCH }}${{ env.DOCKER_SUFFIX }}:${{ env.DOCKER_VERSION_TAG }}"
+            "ghcr.io/${{ env.GHCR_REPOSITORY }}/toolchain/${{ env.TOOLCHAIN_ARCH }}${{ env.DOCKER_SUFFIX }}:${{ env.DOCKER_LATEST_TAG }}"
 
   # publish-github:
   #   needs:

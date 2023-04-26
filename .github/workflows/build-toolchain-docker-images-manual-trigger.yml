@@ -18,6 +18,8 @@ on:
         required: true
         type: string
 
+run-name: Build Toolchain Docker Image ${{ inputs.kernel_version }}/${{ inputs.toolchain_arch }}
+
 jobs:
   trigger:
     if: github.ref == 'refs/heads/toolchain'

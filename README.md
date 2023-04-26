@@ -6,7 +6,8 @@ Toolchain is a Docker image that includes all necessary sources/tools to be able
 
 ## Quick Start
 
-0. Define vars
+1. Define vars
+
     ```shell
     #export TOOLCHAIN_ARCH=arm32v5
     #export TOOLCHAIN_ARCH=arm32v6
@@ -16,9 +17,25 @@ Toolchain is a Docker image that includes all necessary sources/tools to be able
     #export TOOLCHAIN_ARCH=i668
     ```
 
-1. Build toolchain image (or use image from CI)
-    ```bash
-    docker build --file docker/${TOOLCHAIN_ARCH}/Dockerfile --tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest .
+1. Obtain an image
+
+    - Build toolchain image
+        ```shell
+        docker build --file docker/${TOOLCHAIN_ARCH}/Dockerfile --tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest .
+        ```
+
+    - Pull toolchain image
+
+        ```shell
+        docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}
+        docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}/snapshot
+        ```
+
+1. Run toolchain container
+
+    ```shell
+    docker run --rm -it --entrypoint /bin/bash ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}
+    docker run --rm -it --entrypoint /bin/bash ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}/snapshot
     ```
 
 ## Tags format

@@ -28,6 +28,7 @@
 	"git.rebaseWhenSync": true,
 	"cSpell.words": [
 		"Buildx",
+		"elif",
 		"esac",
 		"osfordev",
 		"preboot"
