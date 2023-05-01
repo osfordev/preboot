@@ -30,6 +30,7 @@ RUN \
 
 RUN \
   emerge --quiet --oneshot \
+    dev-lang/swig \
     sys-apps/busybox \
     sys-apps/kexec-tools \
     sys-fs/lvm2 \
@@ -42,19 +43,19 @@ RUN \
 RUN \
   cd /usr/src/linux && make -C usr/ gen_init_cpio && chmod +x usr/gen_init_cpio usr/gen_initramfs.sh
 
-# RUN \
-#   rm -rf /run/*; \
-#   rm -rf /tmp/*; \
-#   rm -rf /usr/share/man; \
-#   rm -rf /var/cache/*; \
-#   rm -rf /var/db/repos/*; \
-#   rm -rf /var/log/*; \
-#   rm -rf /var/tmp/*
+RUN \
+  rm -rf /run/*; \
+  rm -rf /tmp/*; \
+  rm -rf /usr/share/man; \
+  rm -rf /var/cache/*; \
+  rm -rf /var/db/repos/*; \
+  rm -rf /var/log/*; \
+  rm -rf /var/tmp/*
 
-# COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh
 
 
-# FROM scratch
-# COPY --from=stage / /
-# VOLUME [ "/cache" ]
-# ENTRYPOINT [ "/usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh" ]
+FROM scratch
+COPY --from=stage / /
+VOLUME [ "/cache", "/preboot", "/preboot.build" ]
+ENTRYPOINT [ "/usr/local/bin/docker-entrypoint-osfordev-preboot-toolchain.sh" ]
