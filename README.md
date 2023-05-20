@@ -1,5 +1,32 @@
 # OS For Developers PreBoot
 
+**PreBoot** is a generic Gentoo Linux kernel (+initramfs) that acts as an early stage of a booting process.
+It unifies the boot process of **OS For Developers** across BIOS, EFI, U-Boot, etc.
+
+```
++---------+       +----------+
+| BIOS    +-----> |          |             +--------------------+
++---------+       |          |             |                    |
+                  |          |             |      Kernel        |
++---------+       |          |             |                    |
+| EFI     +-----> | PreBoot  +-- kexec --> | OS For Developers  |
++---------+       |          |             |                    |
+                  |          |             |     Initramfs      |
++---------+       |          |             |                    |
+| U-Boot  +-----> |          |             +--------------------+
++---------+       +----------+
+```
+
+**PreBoot** is distributed as a disk image ready to burn on HDD/SSD, SD-card, USB-flash, etc.
+
+## Get Started
+
+1. Obtain an image  (according to your platform)
+
+## Development
+
+### Repository Structure
+
 This is workspace branch of multi project repository based on [orphan](https://git-scm.com/docs/git-checkout#Documentation/git-checkout.txt---orphanltnew-branchgt) branches.
 
 Branches (sub-projects):
@@ -9,7 +36,7 @@ Branches (sub-projects):
 * `httpboot` - HTTP boot allows to load preboot from network. Include sources to build ipxe.efi, undionly.kpxe, etc.
 * `toolchain` - Toolchain is a Docker image that includes all necessary sources/tools to be able to build preboot artifacts like kernel, initrd, etc.
 
-## Get Started
+### Initialize Workspace
 
 1. Clone the repository
 	```shell
@@ -29,7 +56,7 @@ Branches (sub-projects):
 	```
 
 
-## Notes
+### Notes
 
 Add new orphan branch
 
