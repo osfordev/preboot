@@ -44,9 +44,9 @@ Toolchain is a Docker image that includes all necessary sources/tools to be able
 
 Relevant tag names like a:
 
-| Kernel Version  | Docker Arch     | Tag Name                            |
-|-----------------|-----------------|-------------------------------------|
-| 5.15.80         | linux/amd64     | toolchain-5.15.80-amd64-YYYYMMDD    |
-| 5.15.80         | linux/arm/v7    | toolchain-5.15.80-arm32v7-YYYYMMDD  |
-| 5.15.80         | linux/arm64/v8  | toolchain-5.15.80-amd64v8-YYYYMMDD  |
-| 5.15.80         | linux/386       | toolchain-5.15.80-i686-YYYYMMDD     |
+| Kernel Version  | Docker Arch     | Git Tag Name                        | Docker Image                                        |
+|-----------------|-----------------|-------------------------------------|-----------------------------------------------------|
+| 5.15.80         | linux/amd64     | toolchain-5.15.80-amd64-YYYYMMDD    | ghcr.io/osfordev/preboot/toolchain/amd64:5.15.80    |
+| 5.15.80         | linux/arm/v7    | toolchain-5.15.80-arm32v7-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/arm32v7:5.15.80  |
+| 5.15.80         | linux/arm64/v8  | toolchain-5.15.80-amd64v8-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/amd64v8:5.15.80  |
+| 5.15.80         | linux/386       | toolchain-5.15.80-i686-YYYYMMDD     | ghcr.io/osfordev/preboot/toolchain/i686:5.15.80     |

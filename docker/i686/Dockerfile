@@ -19,9 +19,11 @@ RUN \
 
 RUN \
   emerge --quiet --oneshot \
+    dev-vcs/git \
     sys-apps/busybox \
     sys-apps/kexec-tools \
     sys-boot/syslinux \
+    sys-fs/dosfstools \
     sys-fs/lvm2 \
     sys-fs/mdadm
 

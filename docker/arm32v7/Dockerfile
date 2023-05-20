@@ -22,19 +22,18 @@ RUN \
   echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use
 
 RUN \
-  emerge  --quiet dev-vcs/git && \
-  cd /opt && \
-  git clone --depth 1 --branch v2023.04 https://source.denx.de/u-boot/u-boot.git && \
-  emerge  --quiet --unmerge dev-vcs/git && \
-  emerge  --quiet --depclean
-
-RUN \
   emerge --quiet --oneshot \
     dev-lang/swig \
+    dev-vcs/git \
     sys-apps/busybox \
     sys-apps/kexec-tools \
+    sys-fs/dosfstools \
     sys-fs/lvm2 \
     sys-fs/mdadm
+
+RUN \
+  cd /opt && \
+  git clone --depth 1 --branch v2023.04 https://source.denx.de/u-boot/u-boot.git
 
 RUN \
   eselect kernel set 1
