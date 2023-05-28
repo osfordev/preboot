@@ -1,5 +1,8 @@
 #!/bin/busybox sh
 
+source /init-base.functions
+source /init-platform.functions
+
 cat /BANNER
 
 info() {
