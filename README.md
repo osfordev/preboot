@@ -61,8 +61,12 @@ Branches (sub-projects):
 Add new orphan branch
 
 ```shell
-NEW_ORPHAN_BRANCH=mybranch
-git switch --orphan  "${NEW_ORPHAN_BRANCH}"
+NEW_BRANCH=...
+git worktree add --detach "./${NEW_BRANCH}"
+cd "./${NEW_BRANCH}"
+git checkout --orphan "${NEW_BRANCH}"
+git reset --hard
 git commit --allow-empty -m "Initial Commit"
-git push origin "${NEW_ORPHAN_BRANCH}"
+git push origin "${NEW_BRANCH}":"${NEW_BRANCH}"
 ```
+
