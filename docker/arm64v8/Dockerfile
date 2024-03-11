@@ -24,6 +24,7 @@ RUN \
 RUN \
   emerge --quiet --oneshot \
     dev-vcs/git \
+    net-wireless/wireless-regdb \
     sys-apps/busybox \
     sys-apps/kexec-tools \
     sys-fs/dosfstools \

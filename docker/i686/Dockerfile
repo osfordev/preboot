@@ -20,12 +20,15 @@ RUN \
 RUN \
   emerge --quiet --oneshot \
     dev-vcs/git \
+net-wireless/wireless-regdb \
     sys-apps/busybox \
     sys-apps/kexec-tools \
     sys-boot/syslinux \
+    sys-firmware/intel-microcode \
     sys-fs/dosfstools \
     sys-fs/lvm2 \
-    sys-fs/mdadm
+    sys-fs/mdadm \ 
+    sys-kernel/linux-firmware
 
 RUN \
   eselect kernel set 1

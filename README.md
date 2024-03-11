@@ -14,7 +14,7 @@ Toolchain is a Docker image that includes all necessary sources/tools to be able
     #export TOOLCHAIN_ARCH=arm32v7
     #export TOOLCHAIN_ARCH=arm64v8
     export TOOLCHAIN_ARCH=amd64
-    #export TOOLCHAIN_ARCH=i668
+    #export TOOLCHAIN_ARCH=i686
     ```
 
 1. Obtain an image
