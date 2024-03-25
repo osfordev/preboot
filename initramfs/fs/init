@@ -3,7 +3,9 @@
 source /init-base.functions
 source /init-platform.functions
 
-cat /BANNER
+if [ -f /BANNER ]; then
+	cat /BANNER
+fi
 
 info() {
 	if [ -z "$QUIET" ]; then
@@ -37,6 +39,14 @@ mount -n -t tmpfs -o rw,nodev,mode=755 none /run || fatal "Failure mount /run"
 # touch /var/log/lastlog || fatal "Failure create /var/log/lastlog"
 
 # ln -s /proc/mounts /etc/mtab || fatal "Failure link /etc/mtab -> /proc/mounts"
+
+
+# # TEMPORARY
+# info "kexec ..."
+# mount -o ro /dev/sda1 /mnt
+# kexec --load /mnt/vmlinuz --append "panic=10 net.ifnames=0 root=/dev/sda3" || fatal "kexec: Unable to load kernel/initrams."
+# kexec --exec || fatal "kexec: Unable to execute."
+# # TEMPORARY
 
 # OSFORDEV_VOLUME=osfordev
 OSFORDEV_VOLUME=vg0

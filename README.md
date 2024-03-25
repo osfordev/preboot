@@ -11,9 +11,9 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     ```shell
     #export TOOLCHAIN_ARCH=arm32v5
     #export TOOLCHAIN_ARCH=arm32v6
-    export TOOLCHAIN_ARCH=arm32v7
+    #export TOOLCHAIN_ARCH=arm32v7
     #export TOOLCHAIN_ARCH=arm64v8
-    #export TOOLCHAIN_ARCH=amd64
+    export TOOLCHAIN_ARCH=amd64
     #export TOOLCHAIN_ARCH=i668
     ```
 
@@ -30,10 +30,12 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     docker volume create osfordev-preboot-cache
     ```
 3. Run build
+    * NOTE 1: Container required --privileged flag to manipulate loop devices while creating disk image.
+    * NOTE 2: For UBoot loader you have to add `--env UBOOT_TARGET_BOARD=Cubietruck`
     ```bash
     docker run \
         --privileged --rm --interactive --tty \
-        --env TARGET_BOARD=Cubietruck \
+        --env UBOOT_TARGET_BOARD=Cubietruck \
         --volume osfordev-preboot-cache:/cache \
         --mount type=bind,source="$(pwd)",target=/preboot \
         --volume $(pwd)/.build:/preboot.build \

@@ -29,8 +29,8 @@ if [ -z "${DOCKER_ARCH}" ]; then
 	exit 15
 fi
 
-if [ -z "${TARGET_BOARD}" ]; then
-	echo "A TARGET_BOARD variable is not set." >&2
+if [ -z "${UBOOT_TARGET_BOARD}" ]; then
+	echo "A UBOOT_TARGET_BOARD variable is not set." >&2
 	exit 16
 fi
 
@@ -70,12 +70,12 @@ case "${DOCKER_ARCH}" in
 		;;
 esac
 
-case "${TARGET_BOARD}" in
+case "${UBOOT_TARGET_BOARD}" in
 	Cubietruck)
 		DTB_FILE="sun7i-a20-cubietruck.dtb"
 		;;
 	*)
-		echo "Unsupported TARGET_BOARD: '${TARGET_BOARD}'. Supported: 'Cubietruck'." >&2
+		echo "Unsupported UBOOT_TARGET_BOARD: '${UBOOT_TARGET_BOARD}'. Supported: 'Cubietruck'." >&2
 		exit 68
 		;;
 esac
@@ -130,14 +130,14 @@ else
 	#
 	# U-Boot
 	#
-	echo "Compile U-boot for '${TARGET_BOARD}' ..."
+	echo "Compile U-boot for '${UBOOT_TARGET_BOARD}' ..."
 	cd /opt/u-boot/
 	rm -f "/cache/u-boot/.config"
-	if [ ! -f "/preboot/u-boot/config-${TARGET_BOARD}" ]; then
-		make O=/cache/u-boot "${TARGET_BOARD}_defconfig"
-		mv "/cache/u-boot/.config" "/preboot/u-boot/config-${TARGET_BOARD}"
+	if [ ! -f "/preboot/u-boot/config-${UBOOT_TARGET_BOARD}" ]; then
+		make O=/cache/u-boot "${UBOOT_TARGET_BOARD}_defconfig"
+		mv "/cache/u-boot/.config" "/preboot/u-boot/config-${UBOOT_TARGET_BOARD}"
 	fi
-	ln -s "/preboot/u-boot/config-${TARGET_BOARD}" "/cache/u-boot/.config"
+	ln -s "/preboot/u-boot/config-${UBOOT_TARGET_BOARD}" "/cache/u-boot/.config"
 	if tty >/dev/null; then
 		make O=/cache/u-boot menuconfig
 	fi
@@ -287,27 +287,27 @@ for SOFT_ITEM in ${SOFT_ITEMS}; do
 	fi
 done
 
-# # for NSSLIB in $(ls -1 /lib/libnss_*); do
-# # 	if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${NSSLIB}"); then
-# # 		LIB_ITEMS+=("${NSSLIB}")
-# # 	fi
-# # done
+# for NSSLIB in $(ls -1 /lib/libnss_*); do
+# 	if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${NSSLIB}"); then
+# 		LIB_ITEMS+=("${NSSLIB}")
+# 	fi
+# done
 
-# # case "${KERNEL_ARCH}" in
-# # 	x86_64)
-# # 		for NSSLIB in $(ls -1 /lib64/libnss_*); do
-# # 			if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${NSSLIB}"); then
-# # 				LIB_ITEMS+=("${NSSLIB}")
-# # 			fi
-# # 		done
-# # 		;;
-# # esac
+# case "${KERNEL_ARCH}" in
+# 	x86_64)
+# 		for NSSLIB in $(ls -1 /lib64/libnss_*); do
+# 			if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${NSSLIB}"); then
+# 				LIB_ITEMS+=("${NSSLIB}")
+# 			fi
+# 		done
+# 		;;
+# esac
 
-# # for RESOLVLIB in $(ls -1 /lib/libresolv*); do
-# # 	if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${RESOLVLIB}"); then
-# # 		LIB_ITEMS+=("${RESOLVLIB}")
-# # 	fi
-# # done
+# for RESOLVLIB in $(ls -1 /lib/libresolv*); do
+# 	if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${RESOLVLIB}"); then
+# 		LIB_ITEMS+=("${RESOLVLIB}")
+# 	fi
+# done
 
 for LIB_ITEM in ${LIB_ITEMS[@]}; do
 	if [ -e "${LIB_ITEM}" ]; then
@@ -387,11 +387,11 @@ cat "${CPIO_LIST}" > /preboot.build/initramfs.debug.txt
 #
 # Cleanup (from previous runs)
 #
-losetup --detach-all
+/sbin/losetup --detach-all
 
 BOOT_PARTITION_SIZE_MB=48
 IMAGE_SIZE_B=$((${BOOT_PARTITION_SIZE_MB}*1024*1024+2048*512))
-IMAGE_FILE="/preboot.build/preboot-${TARGET_BOARD}.img"
+IMAGE_FILE="/preboot.build/preboot-${UBOOT_TARGET_BOARD}.img"
 
 for LOOP_INDEX in $(seq 0 9); do
 	if [ ! -b /dev/loop${LOOP_INDEX} ]; then
@@ -401,7 +401,7 @@ done
 
 echo
 echo -n "Searching for available loop device... "
-LO_DEV=$(losetup --find) || exit 1
+LO_DEV=$(/sbin/losetup --find) || exit 1
 echo "Found ${LO_DEV}"
 
 if [ -f "${IMAGE_FILE}" ]; then
@@ -414,7 +414,7 @@ echo "Done"
 
 echo
 echo -n "Setting loop device ${LO_DEV} => ${IMAGE_FILE} ... "
-losetup "${LO_DEV}" "${IMAGE_FILE}"
+/sbin/losetup "${LO_DEV}" "${IMAGE_FILE}"
 echo "Done"
 
 
@@ -428,8 +428,8 @@ sfdisk --part-type "${LO_DEV}" 1 06 || exit 4
 
 echo
 echo -n "Re-setting loop device ${LO_DEV} => ${IMAGE_FILE} with --partscan option ... "
-losetup --detach "${LO_DEV}" || exit 5
-losetup --partscan "${LO_DEV}" "${IMAGE_FILE}" || exit 6
+/sbin/losetup --detach "${LO_DEV}" || exit 5
+/sbin/losetup --partscan "${LO_DEV}" "${IMAGE_FILE}" || exit 6
 echo "Done"
 
 echo
@@ -474,7 +474,7 @@ rm /mnt/null.dat
 echo
 echo "Destructing..."
 umount /mnt
-losetup --detach "${LO_DEV}"
+/sbin/losetup --detach "${LO_DEV}"
 
 echo
 echo "Calculating SHA1 of the image ${IMAGE_FILE} ..."
