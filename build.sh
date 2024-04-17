@@ -1,13 +1,8 @@
-#!/bin/bash
+#!/bin/bash -l
 #
 
-if [ ! -f /DOCKER_ARCH ]; then
-	echo "Look like you have wrong build container. The container should present a file /DOCKER_ARCH" >&2
-	exit 1
-fi
-DOCKER_ARCH=$(cat /DOCKER_ARCH)
 if [ -z "${DOCKER_ARCH}" ]; then
-	echo "Look like you have wrong build container. The container should present a file /DOCKER_ARCH with proper arch value." >&2
+	echo "Look like you have wrong build container. The container should present an environment variable DOCKER_ARCH with proper arch value."
 	exit 2
 fi
 

@@ -1,0 +1,46 @@
+#!/bin/sh
+
+info() {
+	if [ -z "$QUIET" ]; then
+		echo "[I] $1"
+	fi
+}
+warn() {
+	echo "[W] $1"
+}
+fatal() {
+	echo "[!] FATAL ERROR: $1"
+	echo 1 > /proc/sys/kernel/printk
+	echo ".Entering rescue shell."
+	exec /bin/busybox sh
+}
+
+invite_to_shell() {
+	local COUNTDOWN=
+	COUNTDOWN=0
+	if [ -n "$1" ]; then
+		let "COUNTDOWN=$1*1"
+	fi
+
+	if [ $COUNTDOWN -eq 0 ]; then
+		echo
+		/bin/busybox sh
+	else
+		echo -n " Press 'S' to enter interactive shell..."
+
+		while [ $COUNTDOWN -gt 0 ]; do
+			let "COUNTDOWN=$COUNTDOWN-1"
+			KEY=""
+			read -t 1 -s -n 1 KEY
+			if [ "$KEY" == "S" -o "$KEY" == "s" ]; then
+				echo
+				/bin/busybox sh
+				break;
+			elif [ -n "$KEY" ]; then
+				let "COUNTDOWN=$COUNTDOWN+1"
+			fi
+			echo -n " $COUNTDOWN"
+		done
+	fi
+	echo
+}

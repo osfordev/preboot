@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #
 
 set -e
@@ -9,40 +9,32 @@ if [ ! -f /preboot/BANNER ]; then
 fi
 cat /preboot/BANNER
 
-if [ ! -f /KERNEL_VERSION ]; then
-	echo "Look like you have wrong toolchain container. The container should present a file /KERNEL_VERSION" >&2
+if [ -z "${SITE}" ]; then
+	echo "Look like you have wrong toolchain container. The container should present an environment variable SITE (like: 27K51EA#A2Q, ASRockPV530, etc.). See https://github.com/osfordev/gentoo-overlay/tree/master/profiles for relevant values." >&2
 	exit 1
 fi
-KERNEL_VERSION=$(cat /KERNEL_VERSION)
+
 if [ -z "${KERNEL_VERSION}" ]; then
-	echo "Look like you have wrong toolchain container. The container should present a file /KERNEL_VERSION with proper kernel version." >&2
+	echo "Look like you have wrong toolchain container. The container should present an environment variable KERNEL_VERSION with proper kernel version." >&2
 	exit 1
 fi
 
-if [ ! -f /DOCKER_ARCH ]; then
-	echo "Look like you have wrong build container. The container should present a file /DOCKER_ARCH"
-	exit 1
-fi
-DOCKER_ARCH=$(cat /DOCKER_ARCH)
 if [ -z "${DOCKER_ARCH}" ]; then
-	echo "Look like you have wrong build container. The container should present a file /DOCKER_ARCH with proper arch value."
+	echo "Look like you have wrong build container. The container should present an environment variable DOCKER_ARCH with proper arch value."
 	exit 1
 fi
-
-# https://www.kernel.org/doc/html/v5.14/kbuild/kconfig.html#kconfig-overwriteconfig
-# If you set KCONFIG_OVERWRITECONFIG in the environment,
-# Kconfig will not break symlinks when .config is a symlink to somewhere else.
-export KCONFIG_OVERWRITECONFIG=y
 
 case "${DOCKER_ARCH}" in
 	linux/386)
 		KERNEL_ARCH=x86
+		OSFORDEV_ARCH=i686
 		;;
 	linux/amd64)
 		KERNEL_ARCH=x86_64
+		OSFORDEV_ARCH=amd64
 		;;
 	*)
-		echo "Unsupported DOCKER_ARCH: ${DOCKER_ARCH}" >&2
+		echo "Unsupported (yet) DOCKER_ARCH: ${DOCKER_ARCH}" >&2
 		exit 62
 		;;
 esac
@@ -53,15 +45,21 @@ KERNEL_SLUG=$(basename $(pwd -LP) | cut -d- -f2-)
 export KBUILD_OUTPUT="/cache/${KERNEL_SLUG}/kernel"
 [ ! -d "${KBUILD_OUTPUT}" ] && mkdir --parents "${KBUILD_OUTPUT}"
 
-if [ ! -f "/preboot/kernel/${KERNEL_ARCH}/config-${KERNEL_VERSION}-gentoo" ]; then
-	echo "Kernel configuration /preboot/kernel/${KERNEL_ARCH}/config-${KERNEL_VERSION}-gentoo was not found. Cannot continue." >&2
+# Sync osfordev repository (overlay) to point kernel config
+emerge --sync osfordev
+
+
+KERNEL_CONFIG_FILE="/var/db/repos/osfordev/profiles/${SITE}/kernel.config"
+if [ ! -f "${KERNEL_CONFIG_FILE}" ]; then
+	echo "Wrong value '${SITE}' for the environment variable SITE. Kernel configuration was not found by path '${KERNEL_CONFIG_FILE}'. See https://github.com/osfordev/gentoo-overlay/tree/master/profiles for relevant values." >&2
 	exit 1
 fi
+
 rm -f "${KBUILD_OUTPUT}/.config"
-ln -s "/preboot/kernel/${KERNEL_ARCH}/config-${KERNEL_VERSION}-gentoo" "${KBUILD_OUTPUT}/.config"
+ln -s "${KERNEL_CONFIG_FILE}" "${KBUILD_OUTPUT}/.config"
 
 make oldconfig
-make menuconfig
+# make menuconfig
 
 make "-j$(nproc)"
 INSTALL_MOD_PATH="/cache/${KERNEL_SLUG}/modules" make modules_install
@@ -90,21 +88,20 @@ echo "Initialize initramfs configuration..."
 mkdir "/cache/${KERNEL_SLUG}/initramfs"
 cp /preboot/BANNER "/cache/${KERNEL_SLUG}/initramfs/BANNER"
 cp --archive "/preboot/initramfs/fs/"* "/cache/${KERNEL_SLUG}/initramfs/"
-#cp --archive "/preboot/initramfs/fs.${KERNEL_ARCH}"/* "/cache/${KERNEL_SLUG}/initramfs/"
+cp --archive "/preboot/initramfs/fs.${OSFORDEV_ARCH}"/* "/cache/${KERNEL_SLUG}/initramfs/"
 
 CPIO_LIST=$(mktemp)
-cat "/preboot/initramfs/initramfs_list.${KERNEL_ARCH}" >> "${CPIO_LIST}"
+cat "/preboot/initramfs/initramfs_list.${OSFORDEV_ARCH}" >> "${CPIO_LIST}"
 echo >> "${CPIO_LIST}"
 
-
+echo "file /BANNER /cache/${KERNEL_SLUG}/initramfs/BANNER 644 0 0" >> "${CPIO_LIST}"
 echo "file /etc/group /cache/${KERNEL_SLUG}/initramfs/etc/group 644 0 0" >> "${CPIO_LIST}"
 echo "file /etc/ld.so.conf /etc/ld.so.conf 644 0 0" >> "${CPIO_LIST}"
 echo "file /etc/nsswitch.conf /cache/${KERNEL_SLUG}/initramfs/etc/nsswitch.conf 644 0 0" >> "${CPIO_LIST}"
 echo "file /etc/passwd /cache/${KERNEL_SLUG}/initramfs/etc/passwd 644 0 0" >> "${CPIO_LIST}"
 echo "file /init /cache/${KERNEL_SLUG}/initramfs/init 755 0 0" >> "${CPIO_LIST}"
-# echo "file /uncrypt /cache/${KERNEL_SLUG}/initramfs/uncrypt 755 0 0" >> "${CPIO_LIST}"
-# echo "dir /usr/share/udhcpc 755 0 0" >> "${CPIO_LIST}"
-# echo "file /usr/share/udhcpc/default.script /usr/share/udhcpc/default.script 755 0 0" >> "${CPIO_LIST}"
+echo "file /init-base.functions /cache/${KERNEL_SLUG}/initramfs/init-base.functions 644 0 0" >> "${CPIO_LIST}"
+echo "file /init-platform.functions /cache/${KERNEL_SLUG}/initramfs/init-platform.functions 644 0 0" >> "${CPIO_LIST}"
 echo >> "${CPIO_LIST}"
 
 
@@ -117,18 +114,6 @@ SOFT_ITEMS="${SOFT_ITEMS} /bin/busybox"
 # KExec
 SOFT_ITEMS="${SOFT_ITEMS} /usr/sbin/kexec /usr/sbin/vmcore-dmesg"
 
-# # Strace
-# SOFT_ITEMS="${SOFT_ITEMS} /usr/bin/strace"
-
-# # Curl requires for stratum download
-# SOFT_ITEMS="${SOFT_ITEMS} /usr/bin/curl"
-
-# # Filesystem tools
-# SOFT_ITEMS="${SOFT_ITEMS} /sbin/e2fsck /sbin/fsck /sbin/fsck.ext4 /sbin/mke2fs /sbin/mkfs /sbin/mkfs.ext4 /sbin/resize2fs"
-
-# # Disk partition tools
-# SOFT_ITEMS="${SOFT_ITEMS} /sbin/fdisk /sbin/sfdisk /usr/sbin/gdisk /usr/sbin/parted"
-
 # LVM stuff
 SOFT_ITEMS="${SOFT_ITEMS} /sbin/dmsetup /sbin/lvm /sbin/lvcreate /sbin/lvdisplay /sbin/lvextend /sbin/lvremove /sbin/lvresize /sbin/lvs /sbin/pvcreate /sbin/pvdisplay /sbin/pvresize /sbin/vgchange /sbin/vgcreate /sbin/vgdisplay /sbin/vgextend /sbin/vgscan"
 echo "dir /etc/lvm 755 0 0" >> "${CPIO_LIST}"
@@ -137,12 +122,6 @@ echo "file /etc/lvm/lvm.conf /etc/lvm/lvm.conf 644 0 0" >> "${CPIO_LIST}"
 # Tool for running RAID systems
 SOFT_ITEMS="${SOFT_ITEMS} /sbin/mdadm"
 echo "file /etc/mdadm.conf /cache/${KERNEL_SLUG}/initramfs/etc/mdadm.conf 644 0 0" >> "${CPIO_LIST}"
-
-# # Cryptsetup
-# SOFT_ITEMS="${SOFT_ITEMS} /sbin/cryptsetup"
-
-# # Dropbear SSH Server
-# SOFT_ITEMS="${SOFT_ITEMS} /usr/bin/dbclient /usr/bin/dropbearkey /usr/sbin/dropbear"
 
 # # UDEV (See for udevd location indise init script /etc/init.d/udev)
 # SOFT_ITEMS="${SOFT_ITEMS} /bin/udevadm"
@@ -162,26 +141,6 @@ case "${KERNEL_ARCH}" in
 esac
 
 declare -a LIB_ITEMS
-
-# # libgcc_s.so.1 for cryptsetup
-# echo "dir /usr/lib/gcc 755 0 0" >> "${CPIO_LIST}"
-# LIBGCC_FILE=$(find /usr/lib/gcc -maxdepth 3 -name libgcc_s.so.1 | head -n 1)
-# if [ -z "${LIBGCC_FILE}" ]; then
-# 	echo "Unable to resolve libgcc_s.so.1" >&2
-# 	exit 71
-# fi
-# LIBGCC_DIR=$(dirname "${LIBGCC_FILE}")
-# case "${KERNEL_ARCH}" in
-# 	x86_64)
-# 		echo "dir /usr/lib/gcc/x86_64-pc-linux-gnu 755 0 0" >> "${CPIO_LIST}"
-# 		echo "file /lib64/libgcc_s.so.1 ${LIBGCC_FILE} 755 0 0" >> "${CPIO_LIST}"
-# 		;;
-# 	x86)
-# 		echo "dir /usr/lib/gcc/i686-pc-linux-gnu 755 0 0" >> "${CPIO_LIST}"
-# 		echo "file /lib/libgcc_s.so.1 ${LIBGCC_FILE} 755 0 0" >> "${CPIO_LIST}"
-# 		;;
-# esac
-
 for SOFT_ITEM in ${SOFT_ITEMS}; do
 	if [ -e "${SOFT_ITEM}" ]; then
 		if [ ! -L "${SOFT_ITEM}" ]; then
@@ -205,28 +164,6 @@ for SOFT_ITEM in ${SOFT_ITEMS}; do
 		exit 2
 	fi
 done
-
-# for NSSLIB in $(ls -1 /lib/libnss_*); do
-# 	if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${NSSLIB}"); then
-# 		LIB_ITEMS+=("${NSSLIB}")
-# 	fi
-# done
-
-# case "${KERNEL_ARCH}" in
-# 	x86_64)
-# 		for NSSLIB in $(ls -1 /lib64/libnss_*); do
-# 			if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${NSSLIB}"); then
-# 				LIB_ITEMS+=("${NSSLIB}")
-# 			fi
-# 		done
-# 		;;
-# esac
-
-# for RESOLVLIB in $(ls -1 /lib/libresolv*); do
-# 	if ! (printf '%s\n' "${LIB_ITEMS[@]}" | grep -xq "${RESOLVLIB}"); then
-# 		LIB_ITEMS+=("${RESOLVLIB}")
-# 	fi
-# done
 
 for LIB_ITEM in ${LIB_ITEMS[@]}; do
 	if [ -e "${LIB_ITEM}" ]; then
@@ -265,12 +202,12 @@ echo >> "${CPIO_LIST}"
 echo "# Modules" >> "${CPIO_LIST}"
 echo >> "${CPIO_LIST}"
 
-if [ -d "/cache/${KERNEL_SLUG}/modules/lib/modules" ]; then
-	cd "/cache/${KERNEL_SLUG}/modules/lib/modules"
+if [ -d "/cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}" ]; then
+	cd "/cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}"
 	for n in $(find *); do
 		echo "Adding module $n..."
-		[ -d $n ] && echo "dir /lib/modules/$n 700 0 0" >> "${CPIO_LIST}"
-		[ -f $n ] && echo "file /lib/modules/$n /cache/${KERNEL_SLUG}/modules/lib/modules/$n 600 0 0" >> "${CPIO_LIST}"
+		[ -d $n ] && echo "dir /lib/modules/${KERNEL_SLUG}-${SITE}/$n 700 0 0" >> "${CPIO_LIST}"
+		[ -f $n ] && echo "file /lib/modules/${KERNEL_SLUG}-${SITE}/$n /cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}/$n 600 0 0" >> "${CPIO_LIST}"
 	done
 fi
 
@@ -288,17 +225,51 @@ cd "/usr/src/linux"
 [ ! -d /preboot.build/boot ] && mkdir /preboot.build/boot
 echo "Generating initramfs file /preboot.build/boot/initramfs.cpio.gz..."
 ./usr/gen_initramfs.sh -o "/preboot.build/boot/initramfs.cpio" "${CPIO_LIST}"
-gzip --best --force "/preboot.build/boot/initramfs.cpio"
+# gzip --best --force "/preboot.build/boot/initramfs.cpio"
 
-# Debugging
 
-echo "Unpack final image into /preboot.build/initramfs.debug"
-[ -d "/preboot.build/initramfs.debug" ] && rm -rf "/preboot.build/initramfs.debug"
-mkdir -p "/preboot.build/initramfs.debug"
-cd "/preboot.build/initramfs.debug"
-zcat "/preboot.build/boot/initramfs.cpio.gz" | cpio --extract || /bin/busybox
-echo "Chrooting..."
-cat "${CPIO_LIST}" > /preboot.build/boot/initramfs.txt
-# chroot . /bin/busybox sh -i
+# make menuconfig
 
-# /bin/busybox sh
+# -# CONFIG_SYSFS_DEPRECATED is not set
+# +CONFIG_SYSFS_DEPRECATED=y
+# +# CONFIG_SYSFS_DEPRECATED_V2 is not set
+#  CONFIG_RELAY=y
+#  CONFIG_BLK_DEV_INITRD=y
+# -CONFIG_INITRAMFS_SOURCE=""
+# -CONFIG_RD_GZIP=y
+# +CONFIG_INITRAMFS_SOURCE="/preboot.build/boot/initramfs.cpio"
+# +CONFIG_INITRAMFS_ROOT_UID=0
+# +CONFIG_INITRAMFS_ROOT_GID=0
+# +# CONFIG_RD_GZIP is not set
+# +CONFIG_INITRAMFS_COMPRESSION_NONE=y
+# +CONFIG_HAVE_ARCH_USERFAULTFD_WP=y
+# +CONFIG_HAVE_ARCH_USERFAULTFD_MINOR=y
+# -# CONFIG_USERFAULTFD is not set
+# +CONFIG_USERFAULTFD=y
+# +# CONFIG_ACPI_TABLE_OVERRIDE_VIA_BUILTIN_INITRD is not set
+# -CONFIG_DECOMPRESS_GZIP=y
+
+make \
+  CONFIG_INITRAMFS_SOURCE="/preboot.build/boot/initramfs.cpio" \
+  CONFIG_INITRAMFS_ROOT_UID="0" \
+  CONFIG_INITRAMFS_ROOT_GID="0" \
+  CONFIG_INITRAMFS_COMPRESSION_NONE="y" \
+  "-j$(nproc)"
+
+cd "${KBUILD_OUTPUT}"
+[ ! -d /preboot.build/boot ] && mkdir /preboot.build/boot
+cp --verbose "System.map"                       "/preboot.build/boot/preboot-${SITE}-System.map"
+cp --verbose ".config"                          "/preboot.build/boot/preboot-${SITE}-config"
+cp --verbose "arch/${KERNEL_ARCH}/boot/bzImage" "/preboot.build/boot/preboot-${SITE}"
+
+# # Debugging
+
+# echo "Unpack final image into /preboot.build/initramfs.debug"
+# [ -d "/preboot.build/initramfs.debug" ] && rm -rf "/preboot.build/initramfs.debug"
+# mkdir -p "/preboot.build/initramfs.debug"
+# cd "/preboot.build/initramfs.debug"
+# zcat "/preboot.build/boot/initramfs.cpio.gz" | cpio --extract || /bin/busybox
+# echo "Chrooting..."
+# cat "${CPIO_LIST}" > /preboot.build/boot/initramfs.txt
+# # chroot . /bin/busybox sh -i
+# # /bin/busybox sh

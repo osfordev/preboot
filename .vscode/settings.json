@@ -3,5 +3,6 @@
         "Cubietruck",
         "osfordev",
         "preboot"
-    ]
+    ],
+    "editor.renderWhitespace": "all"
 }

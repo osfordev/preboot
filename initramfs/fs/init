@@ -5,21 +5,6 @@ source /init-platform.functions
 
 cat /BANNER
 
-info() {
-	if [ -z "$QUIET" ]; then
-		echo "[I] $1"
-	fi
-}
-warn() {
-	echo "[W] $1"
-}
-fatal() {
-	echo "[!] FATAL ERROR: $1"
-	echo 1 > /proc/sys/kernel/printk
-	echo ".Entering rescue shell."
-	exec /bin/busybox sh
-}
-
 set -o pipefail
 
 mount -n -t proc proc /proc || fatal "Failure mount /proc"
@@ -38,6 +23,12 @@ mount -n -t tmpfs -o rw,nodev,mode=755 none /run || fatal "Failure mount /run"
 
 # ln -s /proc/mounts /etc/mtab || fatal "Failure link /etc/mtab -> /proc/mounts"
 
+if ! /sbin/ip link show eth0 >/dev/null 2>&1; then 
+    warn "A network device 'eth0' is not found. Reboot in 5 seconds..."
+    sleep 5
+    reboot -f
+fi
+
 # OSFORDEV_VOLUME=osfordev
 OSFORDEV_VOLUME=vg0
 
@@ -50,7 +41,17 @@ info "Activating volume group: '${OSFORDEV_VOLUME}' ..."
 info "Mounting logical volume 'system' ..."
 mount -o ro "/dev/${OSFORDEV_VOLUME}/system" /mnt || fatal "mount: Failure mount logical volume '/dev/${OSFORDEV_VOLUME}/system'"
 
-info "Loading kernel and initramfs into kexec ..."
-kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 z_vg=vg0 z_uncrypt=vg0/luks-home,uncrypted-home,discard;vg0/luks-registry,uncrypted-registry,discard;vg0/luks-swap,uncrypted-swap,discard z_root=vg0/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
+ADDITION_CMDLINE=""
+if [ -f /mnt/boot/CMDLINE ]; then
+    ADDITION_CMDLINE="$(head -n 1 /mnt/boot/CMDLINE)"
+    info "Additional command line: ${ADDITION_CMDLINE}"
+fi
 
+invite_to_shell 5
+
+info "Loading kernel and initramfs into kexec ..."
+kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${ADDITION_CMDLINE} z_vg=vg0 z_uncrypt=vg0/luks-home,uncrypted-home,discard;vg0/luks-registry,uncrypted-registry,discard;vg0/luks-swap,uncrypted-swap,discard z_root=vg0/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
+
+info "Run kexec ..."
+sleep 2
 kexec --exec || fatal "kexec: Unable to execute."
