@@ -1,20 +1,26 @@
 #!/bin/busybox sh
 
-source /init-base.functions
-source /init-platform.functions
-
-cat /BANNER
-
 set -o pipefail
 
 mount -n -t proc proc /proc || fatal "Failure mount /proc"
 echo 0 > /proc/sys/kernel/printk
 
 mount -n -t devtmpfs devtmpfs /dev || fatal "Failure mount /dev"
+
+exec 0</dev/console
+exec 1>/dev/console
+exec 2>/dev/console
+
 mkdir -m 0755 /dev/pts || fatal "Failure create directory /dev/pts with perms 755"
 mount -n -t devpts -o gid=5,mode=0620 devpts /dev/pts || fatal "Failure mount /dev/pts"
+
 mount -n -t sysfs sysfs /sys || fatal "Failure mount /dev/pts"
 mount -n -t tmpfs -o rw,nodev,mode=755 none /run || fatal "Failure mount /run"
+
+cat /BANNER
+
+source /init-base.functions
+source /init-platform.functions
 
 # Set up busybox'es symlinks
 /bin/busybox --install -s || fatal "Failure install busybox symlinks"
@@ -29,17 +35,58 @@ if ! /sbin/ip link show eth0 >/dev/null 2>&1; then
     reboot -f
 fi
 
-# OSFORDEV_VOLUME=osfordev
-OSFORDEV_VOLUME=vg0
+VOLUME_GROUPS=""
+OSFORDEV_CMDLINE=""
+for BLOCK_DEV in $(grep . /sys/class/block/*/device/model | cut -d/ -f5); do
+    if [ -n "${VOLUME_GROUPS}" -o -n "${OSFORDEV_CMDLINE}" ]; then
+        break
+    fi
+
+    FIRST_PARTITION_DEV="/dev/${BLOCK_DEV}1"
+    for INFO_PAIR in $(blkid "${FIRST_PARTITION_DEV}" | cut -d: -f2); do
+        if [ -n "${VOLUME_GROUPS}" -o -n "${OSFORDEV_CMDLINE}" ]; then
+            break
+        fi
+
+        if [ "${INFO_PAIR}" == 'TYPE="vfat"' ]; then
+            info "Found boot device candidate: ${FIRST_PARTITION_DEV}"
+            mount "${FIRST_PARTITION_DEV}" /mnt
+            if [ -f /mnt/OSFORDEV_CMDLINE ]; then
+                info "File OSFORDEV_CMDLINE found on ${FIRST_PARTITION_DEV} ..."
+                OSFORDEV_CMDLINE=$(head -n 1 /mnt/OSFORDEV_CMDLINE)
+                # trim spaces
+                OSFORDEV_CMDLINE=$(echo "${OSFORDEV_CMDLINE}" | xargs)
+                info "OSFORDEV_CMDLINE: '${OSFORDEV_CMDLINE}'"
+            fi
+            if [ -x /mnt/assemble-vgs.sh ]; then
+                info "Script /assemble-vgs.sh found on ${FIRST_PARTITION_DEV} ..."
+                RAW_VOLUME_GROUPS=$(/mnt/assemble-vgs.sh)
+                for RAW_VOLUME_GROUP in ${RAW_VOLUME_GROUPS}; do
+                    VOLUME_GROUPS="${VOLUME_GROUPS} ${RAW_VOLUME_GROUP}"
+                done
+                # trim spaces
+                VOLUME_GROUPS=$(echo "${VOLUME_GROUPS}" | xargs)
+                info "Custom volume groups: '${VOLUME_GROUPS}'"
+            fi
+            umount "${FIRST_PARTITION_DEV}"
+        fi
+    done
+done
+
+if [ -z "${VOLUME_GROUPS}" ]; then
+    info "Using default volume groups '${VOLUME_GROUPS}'"
+    VOLUME_GROUPS=vgroot
+fi
 
 info "Scanning for volume groups ..."
 /sbin/vgscan || fatal "/sbin/vgscan: Failure scan volume groups"
 
-info "Activating volume group: '${OSFORDEV_VOLUME}' ..."
-/sbin/vgchange --activate y "${OSFORDEV_VOLUME}" || fatal "/sbin/vgchange: Failure activate volume '${OSFORDEV_VOLUME}'"
+info "Activating volume group: '${VOLUME_GROUPS}' ..."
+/sbin/vgchange --activate y ${VOLUME_GROUPS} || fatal "/sbin/vgchange: Failure activate volume groups '${VOLUME_GROUPS}'"
 
-info "Mounting logical volume 'system' ..."
-mount -o ro "/dev/${OSFORDEV_VOLUME}/system" /mnt || fatal "mount: Failure mount logical volume '/dev/${OSFORDEV_VOLUME}/system'"
+VGROOT=$(echo "${VOLUME_GROUPS}" | cut -f1)
+info "Mounting 'system' logical volume ..."
+mount -o ro "/dev/${VGROOT}/system" /mnt || fatal "mount: Failure mount logical volume '/dev/${VGROOT}/system'"
 
 ADDITION_CMDLINE=""
 if [ -f /mnt/boot/CMDLINE ]; then
@@ -47,11 +94,11 @@ if [ -f /mnt/boot/CMDLINE ]; then
     info "Additional command line: ${ADDITION_CMDLINE}"
 fi
 
-invite_to_shell 5
+invite_to_shell 3
 
 info "Loading kernel and initramfs into kexec ..."
-kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${ADDITION_CMDLINE} z_vg=vg0 z_uncrypt=vg0/luks-home,uncrypted-home,discard;vg0/luks-registry,uncrypted-registry,discard;vg0/luks-swap,uncrypted-swap,discard z_root=vg0/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
+kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${OSFORDEV_CMDLINE} ${ADDITION_CMDLINE} z_vg=${VGROOT} z_uncrypt=${VGROOT}/luks-home,uncrypted-home,discard;${VGROOT}/luks-registry,uncrypted-registry,discard;${VGROOT}/luks-swap,uncrypted-swap,discard z_root=${VGROOT}/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
 
 info "Run kexec ..."
-sleep 2
+invite_to_shell 2
 kexec --exec || fatal "kexec: Unable to execute."

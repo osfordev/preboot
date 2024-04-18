@@ -36,17 +36,18 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     ```
 3. Optionally, use cache to speedup rebuild kernel
     ```shell
-    docker volume create osfordev-preboot-cache
+    docker volume create "osfordev-preboot-${SITE//#/X}-cache"
     ```
 4. Run build
     ```shell
     docker run \
         --privileged --rm --interactive --tty \
         --env SITE \
-        --volume osfordev-preboot-cache:/cache \
+        --env MENUCONFIG=yes \
+        --volume "osfordev-preboot-${SITE//#/X}-cache":/cache \
         --mount type=bind,source="$(pwd)",target=/preboot \
         --volume $(pwd)/.build:/preboot.build \
-        ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
+        ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.151
     ```
     Note: Container required --privileged flag to manipulate loop devices while creating disk image.
 4. Obtain result in `.build` directory
@@ -54,3 +55,32 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
 ## What the image includes
 
 TBD
+
+## Development
+
+- Run HTTP server
+    ```shell
+    cd .build/boot && python -m http.server
+    ```
+- Build ipxe image to load PreBoot image from network (see `httpboot` branch for examples)
+    ```ipxe
+    #!ipxe
+
+
+    :start
+    dhcp && goto boot
+    prompt --key s --timeout 1500 Press "s" for the iPXE command line... && shell
+    goto start
+
+
+    :boot
+    dhcp
+    kernel http://192.168.0.209:8000/preboot-C3C58ES%23AKD panic=300 || goto boot_error
+    boot || goto boot_error
+
+
+    :boot_error
+    sleep 10
+    goto start
+    ```
+- Create EFI USB with iPXE image
