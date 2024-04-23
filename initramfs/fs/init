@@ -36,15 +36,15 @@ if ! /sbin/ip link show eth0 >/dev/null 2>&1; then
 fi
 
 VOLUME_GROUPS=""
-OSFORDEV_CMDLINE=""
+PREBOOT_CMDLINE=""
 for BLOCK_DEV in $(grep . /sys/class/block/*/device/model | cut -d/ -f5); do
-    if [ -n "${VOLUME_GROUPS}" -o -n "${OSFORDEV_CMDLINE}" ]; then
+    if [ -n "${VOLUME_GROUPS}" -o -n "${PREBOOT_CMDLINE}" ]; then
         break
     fi
 
     FIRST_PARTITION_DEV="/dev/${BLOCK_DEV}1"
     for INFO_PAIR in $(blkid "${FIRST_PARTITION_DEV}" | cut -d: -f2); do
-        if [ -n "${VOLUME_GROUPS}" -o -n "${OSFORDEV_CMDLINE}" ]; then
+        if [ -n "${VOLUME_GROUPS}" -o -n "${PREBOOT_CMDLINE}" ]; then
             break
         fi
 
@@ -53,14 +53,14 @@ for BLOCK_DEV in $(grep . /sys/class/block/*/device/model | cut -d/ -f5); do
             mount "${FIRST_PARTITION_DEV}" /mnt
             if [ -f /mnt/OSFORDEV_CMDLINE ]; then
                 info "File OSFORDEV_CMDLINE found on ${FIRST_PARTITION_DEV} ..."
-                OSFORDEV_CMDLINE=$(head -n 1 /mnt/OSFORDEV_CMDLINE)
+                PREBOOT_CMDLINE=$(head -n 1 /mnt/OSFORDEV_CMDLINE)
                 # trim spaces
-                OSFORDEV_CMDLINE=$(echo "${OSFORDEV_CMDLINE}" | xargs)
-                info "OSFORDEV_CMDLINE: '${OSFORDEV_CMDLINE}'"
+                PREBOOT_CMDLINE=$(echo "${PREBOOT_CMDLINE}" | xargs)
+                info "PREBOOT_CMDLINE: '${PREBOOT_CMDLINE}'"
             fi
-            if [ -x /mnt/assemble-vgs.sh ]; then
-                info "Script /assemble-vgs.sh found on ${FIRST_PARTITION_DEV} ..."
-                RAW_VOLUME_GROUPS=$(/mnt/assemble-vgs.sh)
+            if [ -x /mnt/osfordev-assemble-vgs.sh ]; then
+                info "Script /osfordev-assemble-vgs.sh found on ${FIRST_PARTITION_DEV} ..."
+                RAW_VOLUME_GROUPS=$(/mnt/osfordev-assemble-vgs.sh)
                 for RAW_VOLUME_GROUP in ${RAW_VOLUME_GROUPS}; do
                     VOLUME_GROUPS="${VOLUME_GROUPS} ${RAW_VOLUME_GROUP}"
                 done
@@ -88,16 +88,17 @@ VGROOT=$(echo "${VOLUME_GROUPS}" | cut -f1)
 info "Mounting 'system' logical volume ..."
 mount -o ro "/dev/${VGROOT}/system" /mnt || fatal "mount: Failure mount logical volume '/dev/${VGROOT}/system'"
 
-ADDITION_CMDLINE=""
-if [ -f /mnt/boot/CMDLINE ]; then
-    ADDITION_CMDLINE="$(head -n 1 /mnt/boot/CMDLINE)"
-    info "Additional command line: ${ADDITION_CMDLINE}"
+BOOT_CMDLINE=""
+if [ -f /mnt/boot/OSFORDEV_CMDLINE ]; then
+    BOOT_CMDLINE="$(head -n 1 /mnt/boot/OSFORDEV_CMDLINE)"
+    info "Additional command line: ${BOOT_CMDLINE}"
 fi
 
-invite_to_shell 3
+#invite_to_shell 3
 
 info "Loading kernel and initramfs into kexec ..."
-kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${OSFORDEV_CMDLINE} ${ADDITION_CMDLINE} z_vg=${VGROOT} z_uncrypt=${VGROOT}/luks-home,uncrypted-home,discard;${VGROOT}/luks-registry,uncrypted-registry,discard;${VGROOT}/luks-swap,uncrypted-swap,discard z_root=${VGROOT}/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
+#kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE} z_vg=${VGROOT} z_uncrypt=${VGROOT}/luks-home,uncrypted-home,discard;${VGROOT}/luks-registry,uncrypted-registry,discard;${VGROOT}/luks-swap,uncrypted-swap,discard z_root=${VGROOT}/system,ext4,ro,discard" || fatal "kexec: Unable to load kernel/initrams."
+kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
 
 info "Run kexec ..."
 invite_to_shell 2

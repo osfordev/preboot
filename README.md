@@ -43,7 +43,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     docker run \
         --privileged --rm --interactive --tty \
         --env SITE \
-        --env MENUCONFIG=yes \
+        --env MENUCONFIG=no \
         --volume "osfordev-preboot-${SITE//#/X}-cache":/cache \
         --mount type=bind,source="$(pwd)",target=/preboot \
         --volume $(pwd)/.build:/preboot.build \
