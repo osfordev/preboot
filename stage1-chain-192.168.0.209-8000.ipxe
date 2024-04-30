@@ -1,0 +1,18 @@
+#!ipxe
+
+
+:start
+dhcp && goto boot
+prompt --key s --timeout 1500 Press "s" for the iPXE command line... && shell
+goto start
+
+
+:boot
+dhcp
+chain http://192.168.0.209:8000/stage2.ipxe
+boot || goto boot_error
+
+
+:boot_error
+sleep 10
+goto start
