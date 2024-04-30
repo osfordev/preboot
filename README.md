@@ -50,3 +50,21 @@ Relevant tag names like a:
 | 5.15.80         | linux/arm/v7    | toolchain-5.15.80-arm32v7-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/arm32v7:5.15.80  |
 | 5.15.80         | linux/arm64/v8  | toolchain-5.15.80-amd64v8-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/amd64v8:5.15.80  |
 | 5.15.80         | linux/386       | toolchain-5.15.80-i686-YYYYMMDD     | ghcr.io/osfordev/preboot/toolchain/i686:5.15.80     |
+
+## Build Toolchain Locally
+
+```shell
+#KERNEL_VERSION=5.10.138
+KERNEL_VERSION=5.15.151
+
+BUILD_ARCH=amd64
+#BUILD_ARCH=arm32v7
+#BUILD_ARCH=arm64v8
+#BUILD_ARCH=i686
+
+docker build \
+  --build-arg GENTOO_SOURCES_BUNDLE_IMAGE_TAG="${KERNEL_VERSION}" \
+  --tag ghcr.io/osfordev/preboot/toolchain/local \
+  --file "docker/${BUILD_ARCH}/Dockerfile" \
+  .
+```
