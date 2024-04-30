@@ -3,7 +3,7 @@
 **PreBoot** is a generic Gentoo Linux kernel (+initramfs) that acts as an early stage of a booting process.
 It unifies the boot process of **OS For Developers** across BIOS, EFI, U-Boot, etc.
 
-```
+```text
 +---------+       +----------+
 | BIOS    +-----> |          |             +--------------------+
 +---------+       |          |             |                    |
@@ -69,4 +69,3 @@ git reset --hard
 git commit --allow-empty -m "Initial Commit"
 git push origin "${NEW_BRANCH}":"${NEW_BRANCH}"
 ```
-
