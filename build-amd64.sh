@@ -66,6 +66,23 @@ if [ "${MENUCONFIG}" == "yes" ]; then
         echo "Skipping 'make menuconfig' due to non-interactive terminal."
     fi
 fi
+
+cp -a "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak"
+
+KEXEC_CONFIG_SCRIPT="/preboot/kexec-config/kexec-config-${SITE}.sh"
+if [ -x "${KEXEC_CONFIG_SCRIPT}" ]; then
+    echo "Enable kexec by execute config script ${KEXEC_CONFIG_SCRIPT} ..."
+    ${KEXEC_CONFIG_SCRIPT}
+else
+    echo "Enable kexec ..."
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+fi
+
+echo "=== Enable kexec diff ==="
+diff "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak" || true
+echo "========================="
+
 make "-j$(nproc)"
 INSTALL_MOD_PATH="/cache/${KERNEL_SLUG}/modules" make modules_install
 
@@ -75,10 +92,10 @@ cp --verbose "System.map"                               "/cache/${KERNEL_SLUG}/b
 cp --verbose ".config"                                  "/cache/${KERNEL_SLUG}/boot/config"
 cp --verbose "arch/${KERNEL_ARCH}/boot/bzImage"         "/cache/${KERNEL_SLUG}/boot/vmlinuz"
 
-[ ! -d /preboot.build/boot ] && mkdir /preboot.build/boot
-cp --verbose "System.map"                       "/preboot.build/boot/System.map"
-cp --verbose ".config"                          "/preboot.build/boot/config"
-cp --verbose "arch/${KERNEL_ARCH}/boot/bzImage" "/preboot.build/boot/vmlinuz"
+# [ ! -d /preboot.build/boot ] && mkdir /preboot.build/boot
+# cp --verbose "System.map"                       "/preboot.build/boot/System.map"
+# cp --verbose ".config"                          "/preboot.build/boot/config"
+# cp --verbose "arch/${KERNEL_ARCH}/boot/bzImage" "/preboot.build/boot/vmlinuz"
 
 # cd "/cache/${KERNEL_SLUG}/modules"
 # tar --create --gzip --preserve-permissions --file="/cache/${KERNEL_SLUG}/modules.tar.gz" lib/modules
@@ -228,13 +245,12 @@ done
 
 cd "/usr/src/linux"
 
-[ ! -d /preboot.build/boot ] && mkdir /preboot.build/boot
-echo "Generating initramfs file /preboot.build/boot/initramfs.cpio.gz..."
-./usr/gen_initramfs.sh -o "/preboot.build/boot/initramfs.cpio" "${CPIO_LIST}"
-cp -a "${CPIO_LIST}" /preboot.build/boot/initramfs.cpio.list
+echo "Generating initramfs file /cache/${KERNEL_SLUG}/boot/initramfs.cpio.gz ..."
+./usr/gen_initramfs.sh -o "/cache/${KERNEL_SLUG}/boot/initramfs.cpio" "${CPIO_LIST}"
+cp -a "${CPIO_LIST}" "/cache/${KERNEL_SLUG}/boot/initramfs.cpio.list"
 
 make \
-    CONFIG_INITRAMFS_SOURCE="/preboot.build/boot/initramfs.cpio" \
+    CONFIG_INITRAMFS_SOURCE="/cache/${KERNEL_SLUG}/boot/initramfs.cpio" \
     CONFIG_INITRAMFS_ROOT_UID="0" \
     CONFIG_INITRAMFS_ROOT_GID="0" \
     CONFIG_INITRAMFS_COMPRESSION_NONE="y" \

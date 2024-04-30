@@ -1,46 +1,88 @@
 #!/bin/sh
 
+debug() {
+    if [ -z "${QUIET}" -a -n "${DEBUG}" ]; then
+        echo "[D] ${1}"
+    fi
+}
 info() {
-	if [ -z "$QUIET" ]; then
-		echo "[I] $1"
-	fi
+    if [ -z "${QUIET}" ]; then
+        echo "[I] ${1}"
+    fi
 }
 warn() {
-	echo "[W] $1"
+    echo "[W] ${1}"
 }
 fatal() {
-	echo "[!] FATAL ERROR: $1"
-	echo 1 > /proc/sys/kernel/printk
-	echo ".Entering rescue shell."
-	exec /bin/busybox sh
+    echo "[!] FATAL ERROR: ${1}"
+    echo 1 > /proc/sys/kernel/printk
+    echo ".Entering rescue shell."
+    exec /bin/busybox sh
+}
+
+#
+# Logging into stderr
+# Result in stdout. Example: '/dev/sda1 /dev/sdb1 /dev/vdX1'
+#
+list_boot_device_candidates() {
+    info "Checking for custom boot confguration ..." >&2
+    CANDIDATE_DEVICES=""
+    for BLOCK_DEV in $(cd /sys/class/block/ && ls -1); do
+        if [ ! -f "/sys/class/block/${BLOCK_DEV}/device/model" ]; then
+            continue
+        fi
+
+        PARTITION_DEV="/dev/${BLOCK_DEV}1"
+        info "Examine device '${PARTITION_DEV}' ..." >&2
+        PARTITION_TYPE=""
+        for INFO_PAIR in $(blkid "${PARTITION_DEV}" | cut -d: -f2); do
+            INFO_KEY="$(echo "${INFO_PAIR}" | cut -d= -f1)"
+            if [ "${INFO_KEY}" == "TYPE" ]; then
+                PARTITION_TYPE="$(echo "${INFO_PAIR}" | cut -d= -f2)"
+                break
+            fi
+        done
+        debug "Partition type of '${PARTITION_DEV}' is '${PARTITION_TYPE}'" >&2
+
+        if [ "${PARTITION_TYPE}" == '"vfat"' -o "${PARTITION_TYPE}" ==  '"linux_raid_member"' ]; then
+            debug "Device '${PARTITION_DEV}' is candidate." >&2
+            CANDIDATE_DEVICES="${CANDIDATE_DEVICES} ${PARTITION_DEV}"
+        else
+            debug "Skip device '${PARTITION_DEV}'" >&2
+        fi
+    done
+
+    # trim spaces
+    CANDIDATE_DEVICES=$(echo "${CANDIDATE_DEVICES}" | xargs)
+    echo "${CANDIDATE_DEVICES}"
 }
 
 invite_to_shell() {
-	local COUNTDOWN=
-	COUNTDOWN=0
-	if [ -n "$1" ]; then
-		let "COUNTDOWN=$1*1"
-	fi
+    local COUNTDOWN=
+    COUNTDOWN=0
+    if [ -n "$1" ]; then
+        let "COUNTDOWN=$1*1"
+    fi
 
-	if [ $COUNTDOWN -eq 0 ]; then
-		echo
-		/bin/busybox sh
-	else
-		echo -n " Press 'S' to enter interactive shell..."
+    if [ $COUNTDOWN -eq 0 ]; then
+        echo
+        /bin/busybox sh
+    else
+        echo -n " Press 'S' to enter interactive shell..."
 
-		while [ $COUNTDOWN -gt 0 ]; do
-			let "COUNTDOWN=$COUNTDOWN-1"
-			KEY=""
-			read -t 1 -s -n 1 KEY
-			if [ "$KEY" == "S" -o "$KEY" == "s" ]; then
-				echo
-				/bin/busybox sh
-				break;
-			elif [ -n "$KEY" ]; then
-				let "COUNTDOWN=$COUNTDOWN+1"
-			fi
-			echo -n " $COUNTDOWN"
-		done
-	fi
-	echo
+        while [ $COUNTDOWN -gt 0 ]; do
+            let "COUNTDOWN=$COUNTDOWN-1"
+            KEY=""
+            read -t 1 -s -n 1 KEY
+            if [ "$KEY" == "S" -o "$KEY" == "s" ]; then
+                echo
+                /bin/busybox sh
+                break;
+            elif [ -n "$KEY" ]; then
+                let "COUNTDOWN=$COUNTDOWN+1"
+            fi
+            echo -n " $COUNTDOWN"
+        done
+    fi
+    echo
 }

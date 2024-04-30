@@ -1,16 +1,21 @@
 #!/bin/sh
 
+debug() {
+    if [ -z "${QUIET}" -a -n "${DEBUG}" ]; then
+        echo "amd64 [D] ${1}"
+    fi
+}
 info() {
-	if [ -z "$QUIET" ]; then
-		echo "amd64 [I] $1"
-	fi
+    if [ -z "$QUIET" ]; then
+        echo "amd64 [I] $1"
+    fi
 }
 warn() {
-	echo "amd64 [W] $1"
+    echo "amd64 [W] $1"
 }
 fatal() {
-	echo "amd64 [!] FATAL ERROR: $1"
-	echo 1 > /proc/sys/kernel/printk
-	echo ".Entering rescue shell."
-	exec /bin/busybox sh
+    echo "amd64 [!] FATAL ERROR: $1"
+    echo 1 > /proc/sys/kernel/printk
+    echo ".Entering rescue shell."
+    exec /bin/busybox sh
 }

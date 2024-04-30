@@ -19,6 +19,8 @@ mount -n -t tmpfs -o rw,nodev,mode=755 none /run || fatal "Failure mount /run"
 
 cat /BANNER
 
+DEBUG=yes
+
 source /init-base.functions
 source /init-platform.functions
 
@@ -35,81 +37,85 @@ if ! /sbin/ip link show eth0 >/dev/null 2>&1; then
     reboot -f
 fi
 
-VOLUME_GROUPS=""
+CUSTOM_VOLUME_GROUPS=""
 PREBOOT_CMDLINE=""
 info "Checking for custom boot confguration ..."
-for BLOCK_DEV in $(grep . /sys/class/block/*/device/model | cut -d/ -f5); do
-    if [ -n "${VOLUME_GROUPS}" -a -n "${PREBOOT_CMDLINE}" ]; then
+
+exec 3>&2 # Make copy of stderr on another FD 3 to be able to redirect stderr from list_boot_device_candidates
+BOOT_CANDIDATE_DEVS=$(list_boot_device_candidates 2>&3)
+exec 3>&- # Close FD 3
+
+for BOOT_CANDIDATE_DEV in ${BOOT_CANDIDATE_DEVS}; do
+    if [ -n "${CUSTOM_VOLUME_GROUPS}" -a -n "${PREBOOT_CMDLINE}" ]; then
         break
     fi
 
-    FIRST_PARTITION_DEV="/dev/${BLOCK_DEV}1"
-    info "Examine device '${FIRST_PARTITION_DEV}' ..."
-    FIRST_PARTITION_TYPE=""
-    for INFO_PAIR in $(blkid "${FIRST_PARTITION_DEV}" | cut -d: -f2); do
-        INFO_KEY="$(echo "${INFO_PAIR}" | cut -d= -f1)"
-        if [ "${INFO_KEY}" == "TYPE" ]; then
-            FIRST_PARTITION_TYPE="$(echo "${INFO_PAIR}" | cut -d= -f2)"
-            break
-        fi
-    done
-    info "Partition type of '${FIRST_PARTITION_DEV}' is '${FIRST_PARTITION_TYPE}'"
+    info "Found boot device candidate: ${BOOT_CANDIDATE_DEV}"
+    if ! mount -t vfat -o ro "${BOOT_CANDIDATE_DEV}" /mnt; then
+        info "Unable to mount '${BOOT_CANDIDATE_DEV}'. Skipped."
+        continue
+    fi
 
-    if [ "${FIRST_PARTITION_TYPE}" == '"vfat"' || "${FIRST_PARTITION_TYPE}" ==  '"linux_raid_member"' ]; then
-        info "Found boot device candidate: ${FIRST_PARTITION_DEV}"
-        if ! mount -t vfat -o ro "${FIRST_PARTITION_DEV}" /mnt; then
-            info "Unable to mount '${FIRST_PARTITION_DEV}'. Skipped."
-            continue
-        fi
+    if [ -z "${PREBOOT_CMDLINE}" -a -f /mnt/OSFORDEV_CMDLINE ]; then
+        info "File OSFORDEV_CMDLINE found on ${BOOT_CANDIDATE_DEV} ..."
+        RAW_PREBOOT_CMDLINE=$(cat /mnt/OSFORDEV_CMDLINE)
+        for RAW_PREBOOT_ARG in ${RAW_PREBOOT_CMDLINE}; do
+            PREBOOT_CMDLINE="${PREBOOT_CMDLINE} ${RAW_PREBOOT_ARG}"
+        done
+        # trim spaces
+        PREBOOT_CMDLINE=$(echo "${PREBOOT_CMDLINE}" | xargs)
+        info "PREBOOT_CMDLINE: '${PREBOOT_CMDLINE}'"
+    fi
+    
+    if [ -z "${CUSTOM_VOLUME_GROUPS}" -a -f /mnt/osfordev-vgs-assembler.sh -a ! -x /tmp/osfordev-vgs-assembler.sh ]; then
+        info "Script /osfordev-vgs-assembler.sh found on ${BOOT_CANDIDATE_DEV} ..."
+        cp -a /mnt/osfordev-vgs-assembler.sh /tmp/osfordev-vgs-assembler.sh
+    fi
 
-        if [ -z "${PREBOOT_CMDLINE}" -a -f /mnt/OSFORDEV_CMDLINE ]; then
-            info "File OSFORDEV_CMDLINE found on ${FIRST_PARTITION_DEV} ..."
-            PREBOOT_CMDLINE=$(head -n 1 /mnt/OSFORDEV_CMDLINE)
-            # trim spaces
-            PREBOOT_CMDLINE=$(echo "${PREBOOT_CMDLINE}" | xargs)
-            info "PREBOOT_CMDLINE: '${PREBOOT_CMDLINE}'"
-        fi
-        
-        if [ -z "${VOLUME_GROUPS}" -a -f /mnt/osfordev-vgs-assembler.sh -a ! -x /tmp/osfordev-vgs-assembler.sh ]; then
-            info "Script /osfordev-vgs-assembler.sh found on ${FIRST_PARTITION_DEV} ..."
-            cp -a /mnt/osfordev-vgs-assembler.sh /tmp/osfordev-vgs-assembler.sh
-            RAW_VOLUME_GROUPS=$(/tmp/osfordev-vgs-assembler.sh up)
-            for RAW_VOLUME_GROUP in ${RAW_VOLUME_GROUPS}; do
-                VOLUME_GROUPS="${VOLUME_GROUPS} ${RAW_VOLUME_GROUP}"
-            done
-            # trim spaces
-            VOLUME_GROUPS=$(echo "${VOLUME_GROUPS}" | xargs)
+    umount "${BOOT_CANDIDATE_DEV}" || fatal "Unable umount ${BOOT_CANDIDATE_DEV}"
 
-            if [ -z "${VOLUME_GROUPS}" ]; then
-                fatal "Contract violation. Custom VGs assembler did not retrun volume group name(s)."
-            fi
+    if [ -z "${CUSTOM_VOLUME_GROUPS}" -a -x /tmp/osfordev-vgs-assembler.sh ]; then
+        info "Calling VGs assembler script to up VGs ..."
+        RAW_VOLUME_GROUPS=$(/tmp/osfordev-vgs-assembler.sh up)
+        for RAW_VOLUME_GROUP in ${RAW_VOLUME_GROUPS}; do
+            CUSTOM_VOLUME_GROUPS="${CUSTOM_VOLUME_GROUPS} ${RAW_VOLUME_GROUP}"
+        done
+        # trim spaces
+        CUSTOM_VOLUME_GROUPS=$(echo "${CUSTOM_VOLUME_GROUPS}" | xargs)
 
-            info "Custom volume groups: '${VOLUME_GROUPS}'"
-            
+        if [ -z "${CUSTOM_VOLUME_GROUPS}" ]; then
+            fatal "Contract violation. Custom VGs assembler did not retrun volume group name(s)."
         fi
 
-        umount "${FIRST_PARTITION_DEV}"
+        info "Custom volume groups: '${CUSTOM_VOLUME_GROUPS}'"
     fi
 done
 
-if [ -z "${VOLUME_GROUPS}" ]; then
-    VOLUME_GROUPS="vgroot"
+if [ -n "${CUSTOM_VOLUME_GROUPS}" ]; then
+    # By contract, custom VGs assembler script must return root VG first
+    VGROOT=$(echo "${CUSTOM_VOLUME_GROUPS}" | cut -d' ' -f 1)
+else
+    VGROOT="vgroot"
 
     info "Scanning for volume groups ..."
     /sbin/vgscan || fatal "/sbin/vgscan: Failure scan volume groups"
 
-    info "Activating volume group: '${VOLUME_GROUPS}' ..."
-    /sbin/vgchange --activate y ${VOLUME_GROUPS} || fatal "/sbin/vgchange: Failure activate volume groups '${VOLUME_GROUPS}'"
+    info "Activating volume group: '${VGROOT}' ..."
+    /sbin/vgchange --activate y "${VGROOT}" || fatal "/sbin/vgchange: Failure activate volume group '${VGROOT}'"
 fi
 
-# By contract, custom VGs assembler script must return root VG first
-VGROOT=$(echo "${VOLUME_GROUPS}" | cut -f1)
 info "Mounting 'system' logical volume ..."
 mount -o ro "/dev/${VGROOT}/system" /mnt || fatal "mount: Failure mount logical volume '/dev/${VGROOT}/system'"
 
 BOOT_CMDLINE=""
 if [ -f /mnt/boot/OSFORDEV_CMDLINE ]; then
-    BOOT_CMDLINE="$(head -n 1 /mnt/boot/OSFORDEV_CMDLINE)"
+    RAW_BOOT_CMDLINE="$(cat /mnt/boot/OSFORDEV_CMDLINE)"
+    for RAW_BOOT_ARG in ${RAW_BOOT_CMDLINE}; do
+        BOOT_CMDLINE="${BOOT_CMDLINE} ${RAW_BOOT_ARG}"
+    done
+    # trim spaces
+    BOOT_CMDLINE=$(echo "${BOOT_CMDLINE}" | xargs)
+
     info "Additional command line: ${BOOT_CMDLINE}"
 fi
 
@@ -118,7 +124,15 @@ fi
 info "Loading kernel and initramfs into kexec ..."
 kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
 
-/tmp/osfordev-vgs-assembler.sh down
+umount /mnt || fatal "Failure umount logical volume '/dev/${VGROOT}/system'"
+
+if [ -n "${CUSTOM_VOLUME_GROUPS}" ]; then
+    info "Calling VGs assembler script to down VGs ..."
+    /tmp/osfordev-vgs-assembler.sh down || fatal "VGs down scriptd failed."
+else
+    info "Deactivating VG '${VGROOT}' ..."
+    /sbin/vgchange --activate n "${VGROOT}" || fatal "Unable to de-activate volume group '${VGROOT}'."
+fi
 
 info "Run kexec ..."
 invite_to_shell 2
