@@ -6,9 +6,17 @@
 		"**/toolchain": true,
 	},
 	"cSpell.words": [
+		"CMDLINE",
+		"elif",
 		"httpboot",
 		"kexec",
+		"luks",
 		"osfordev",
-		"preboot"
+		"preboot",
+		"uncrypt",
+		"uncrypted",
+		"vgchange",
+		"vghddraid",
+		"vgssd"
 	]
 }
