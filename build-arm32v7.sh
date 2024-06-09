@@ -176,7 +176,7 @@ SOFT_ITEMS="${SOFT_ITEMS} /bin/busybox"
 SOFT_ITEMS="${SOFT_ITEMS} /usr/sbin/kexec /usr/sbin/vmcore-dmesg"
 
 # LVM stuff
-SOFT_ITEMS="${SOFT_ITEMS} /sbin/dmsetup /sbin/lvm /usr/bin/lvm /sbin/lvcreate /sbin/lvdisplay /sbin/lvextend /sbin/lvremove /sbin/lvresize /sbin/lvs /sbin/pvcreate /sbin/pvdisplay /sbin/pvresize /sbin/vgchange /sbin/vgcreate /sbin/vgdisplay /sbin/vgextend /sbin/vgscan"
+SOFT_ITEMS="${SOFT_ITEMS} /sbin/dmsetup /sbin/lvm /usr/bin/lvm /sbin/lvcreate /sbin/lvdisplay /sbin/lvextend /sbin/lvremove /sbin/lvresize /sbin/lvs /sbin/pvcreate /sbin/pvdisplay /sbin/pvresize /sbin/vgchange /sbin/vgcreate /sbin/vgdisplay /sbin/vgextend /sbin/vgrename /sbin/vgscan"
 echo "dir /etc/lvm 755 0 0" >> "${CPIO_LIST}"
 echo "file /etc/lvm/lvm.conf /etc/lvm/lvm.conf 644 0 0" >> "${CPIO_LIST}"
 
