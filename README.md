@@ -55,7 +55,7 @@ Relevant tag names like a:
 
 ```shell
 #KERNEL_VERSION=5.10.138
-KERNEL_VERSION=5.15.151
+KERNEL_VERSION=5.15.173
 
 BUILD_ARCH=amd64
 #BUILD_ARCH=arm32v7
