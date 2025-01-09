@@ -6,4 +6,4 @@
 
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "X86_UV"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "KEXEC_JUMP"
-
+./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"

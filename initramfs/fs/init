@@ -39,7 +39,6 @@ fi
 
 CUSTOM_VOLUME_GROUPS=""
 PREBOOT_CMDLINE=""
-info "Checking for custom boot confguration ..."
 
 exec 3>&2 # Make copy of stderr on another FD 3 to be able to redirect stderr from list_boot_device_candidates
 BOOT_CANDIDATE_DEVS=$(list_boot_device_candidates 2>&3)
@@ -84,7 +83,7 @@ for BOOT_CANDIDATE_DEV in ${BOOT_CANDIDATE_DEVS}; do
         CUSTOM_VOLUME_GROUPS=$(echo "${CUSTOM_VOLUME_GROUPS}" | xargs)
 
         if [ -z "${CUSTOM_VOLUME_GROUPS}" ]; then
-            fatal "Contract violation. Custom VGs assembler did not retrun volume group name(s)."
+            fatal "Contract violation. Custom VGs assembler did not return volume group name(s)."
         fi
 
         info "Custom volume groups: '${CUSTOM_VOLUME_GROUPS}'"
@@ -124,6 +123,7 @@ fi
 info "Loading kernel and initramfs into kexec ..."
 kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
 
+info "Umounting 'system' logical volume ..."
 umount /mnt || fatal "Failure umount logical volume '/dev/${VGROOT}/system'"
 
 if [ -n "${CUSTOM_VOLUME_GROUPS}" ]; then

@@ -72,11 +72,12 @@ cp -a "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak"
 KEXEC_CONFIG_SCRIPT="/preboot/kexec-config/kexec-config-${SITE}.sh"
 if [ -x "${KEXEC_CONFIG_SCRIPT}" ]; then
     echo "Enable kexec by execute config script ${KEXEC_CONFIG_SCRIPT} ..."
-    ${KEXEC_CONFIG_SCRIPT}
+    KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE}" ${KEXEC_CONFIG_SCRIPT}
 else
     echo "Enable kexec ..."
     ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
     ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"
 fi
 
 echo "=== Enable kexec diff ==="

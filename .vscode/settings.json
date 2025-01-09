@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
+        "blkid",
         "Cubietruck",
         "DELLCS",
+        "diskseq",
         "MENUCONFIG",
         "osfordev",
         "preboot"

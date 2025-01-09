@@ -25,10 +25,23 @@ fatal() {
 # Result in stdout. Example: '/dev/sda1 /dev/sdb1 /dev/vdX1'
 #
 list_boot_device_candidates() {
-    info "Checking for custom boot confguration ..." >&2
+    info "Checking for custom boot configuration ..." >&2
     CANDIDATE_DEVICES=""
     for BLOCK_DEV in $(cd /sys/class/block/ && ls -1); do
-        if [ ! -f "/sys/class/block/${BLOCK_DEV}/device/model" ]; then
+        # It does not work for vda devices on Digital Ocean
+        # if [ ! -f "/sys/class/block/${BLOCK_DEV}/device/model" ]; then
+        #     continue
+        # fi
+
+        # Try to filter non-disk block device (like partitions, )
+        if [ ! -f "/sys/class/block/${BLOCK_DEV}/diskseq" ]; then
+            # https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-block
+            # The /sys/block/<disk>/diskseq files reports the disk
+            # sequence number, which is a monotonically increasing
+            # number assigned to every drive.
+            # Some devices, like the loop device, refresh such number
+            # every time the backing file is changed.
+            # The value type is 64 bit unsigned.
             continue
         fi
 
