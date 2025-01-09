@@ -15,6 +15,8 @@ cd submodules/ipxe/src/
 
 make -j$(nproc) bin-x86_64-efi/ipxe.efi EMBED=../../../preboot.ipxe
 make -j$(nproc) bin-i386-efi/ipxe.efi   EMBED=../../../preboot.ipxe
+make -j$(nproc) bin/ipxe.lkrn           EMBED=../../../preboot.ipxe
+make -j$(nproc) bin/undionly.kpxe       EMBED=../../../preboot.ipxe
 
 cd ../../..
 
