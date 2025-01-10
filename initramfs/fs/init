@@ -44,19 +44,24 @@ exec 3>&2 # Make copy of stderr on another FD 3 to be able to redirect stderr fr
 BOOT_CANDIDATE_DEVS=$(list_boot_device_candidates 2>&3)
 exec 3>&- # Close FD 3
 
+info "Found boot device candidates: $(echo ${BOOT_CANDIDATE_DEVS} | xargs)"
 for BOOT_CANDIDATE_DEV in ${BOOT_CANDIDATE_DEVS}; do
     if [ -n "${CUSTOM_VOLUME_GROUPS}" -a -n "${PREBOOT_CMDLINE}" ]; then
+        # We found all necessary information on previous boot devices
+        # so nothing ti do anymore
         break
     fi
 
-    info "Found boot device candidate: ${BOOT_CANDIDATE_DEV}"
+    info "Mount boot device candidate: ${BOOT_CANDIDATE_DEV} ..."
     if ! mount -t vfat -o ro "${BOOT_CANDIDATE_DEV}" /mnt; then
         info "Unable to mount '${BOOT_CANDIDATE_DEV}'. Skipped."
         continue
     fi
 
-    if [ -z "${PREBOOT_CMDLINE}" -a -f /mnt/OSFORDEV_CMDLINE ]; then
-        info "File OSFORDEV_CMDLINE found on ${BOOT_CANDIDATE_DEV} ..."
+    if [ -n "${PREBOOT_CMDLINE}" ]; then
+        info "Skip reading PREBOOT_CMDLINE due to set early"
+    elif [ -f /mnt/OSFORDEV_CMDLINE ]; then
+        info "File OSFORDEV_CMDLINE found on ${BOOT_CANDIDATE_DEV}"
         RAW_PREBOOT_CMDLINE=$(cat /mnt/OSFORDEV_CMDLINE)
         for RAW_PREBOOT_ARG in ${RAW_PREBOOT_CMDLINE}; do
             PREBOOT_CMDLINE="${PREBOOT_CMDLINE} ${RAW_PREBOOT_ARG}"
@@ -64,13 +69,19 @@ for BOOT_CANDIDATE_DEV in ${BOOT_CANDIDATE_DEVS}; do
         # trim spaces
         PREBOOT_CMDLINE=$(echo "${PREBOOT_CMDLINE}" | xargs)
         info "PREBOOT_CMDLINE: '${PREBOOT_CMDLINE}'"
+    else
+        info "No file OSFORDEV_CMDLINE on ${BOOT_CANDIDATE_DEV}"
     fi
     
+    # -z "${CUSTOM_VOLUME_GROUPS}" will help to use osfordev-vgs-assembler.sh from
+    # first boot device, and ignore next boot device candidates
+    # (in case when few boot devices do have osfordev-vgs-assembler.sh file)
     if [ -z "${CUSTOM_VOLUME_GROUPS}" -a -f /mnt/osfordev-vgs-assembler.sh -a ! -x /tmp/osfordev-vgs-assembler.sh ]; then
         info "Script /osfordev-vgs-assembler.sh found on ${BOOT_CANDIDATE_DEV} ..."
         cp -a /mnt/osfordev-vgs-assembler.sh /tmp/osfordev-vgs-assembler.sh
     fi
 
+    info "Umount boot device candidate: ${BOOT_CANDIDATE_DEV} ..."
     umount "${BOOT_CANDIDATE_DEV}" || fatal "Unable umount ${BOOT_CANDIDATE_DEV}"
 
     if [ -z "${CUSTOM_VOLUME_GROUPS}" -a -x /tmp/osfordev-vgs-assembler.sh ]; then
@@ -115,11 +126,14 @@ if [ -f /mnt/boot/OSFORDEV_CMDLINE ]; then
     # trim spaces
     BOOT_CMDLINE=$(echo "${BOOT_CMDLINE}" | xargs)
 
-    info "Additional command line: ${BOOT_CMDLINE}"
+    info "System volume '/boot/OSFORDEV_CMDLINE': ${BOOT_CMDLINE}"
+else
+    info "System volume does not have '/boot/OSFORDEV_CMDLINE'"
 fi
 
 #invite_to_shell 3
 
+info "Kernel args: panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}"
 info "Loading kernel and initramfs into kexec ..."
 kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
 

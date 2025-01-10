@@ -6,7 +6,9 @@
         "diskseq",
         "MENUCONFIG",
         "osfordev",
-        "preboot"
+        "preboot",
+        "VGROOT",
+        "vgscan"
     ],
     "editor.renderWhitespace": "all"
 }
