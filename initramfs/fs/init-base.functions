@@ -45,6 +45,18 @@ list_boot_device_candidates() {
             continue
         fi
 
+        local BLOCK_DEV_MAJOR
+        BLOCK_DEV_MAJOR=$(stat -c "%t" "/dev/${BLOCK_DEV}")
+        case "${BLOCK_DEV_MAJOR}" in
+            1)
+                # Skip RAM disks (like /dev/ramXX)
+                # https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
+                continue
+                ;;
+            *)
+                ;;
+        esac
+
         PARTITION_DEV="/dev/${BLOCK_DEV}1"
         info "Examine device '${PARTITION_DEV}' ..." >&2
         PARTITION_TYPE=""
