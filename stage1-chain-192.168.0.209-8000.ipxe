@@ -1,5 +1,23 @@
 #!ipxe
 
+#
+# cd ~/w-osfordev/preboot/httpboot/submodules/ipxe/src
+# make -j$(nproc) bin-x86_64-efi/ipxe.efi EMBED=../../../stage1-chain-192.168.0.209-8000.ipxe
+# make -j$(nproc) bin-i386-efi/ipxe.efi   EMBED=../../../stage1-chain-192.168.0.209-8000.ipxe
+
+# # Let's said /dev/sdb is USB drive
+# sudo sfdisk --wipe always --label gpt /dev/sdb <<EOF
+# ,256M,C12A7328-F81F-11D2-BA4B-00A0C93EC93B
+# EOF
+#
+# sudo mkfs.vfat -F 32 -n IPXE_BOOT /dev/sdb1
+#
+# sudo mount /dev/sdb1 /mnt
+# sudo mkdir -p /mnt/EFI/BOOT/
+# sudo cp bin-i386-efi/ipxe.efi   /mnt/EFI/BOOT/BOOTIA32.EFI
+# sudo cp bin-x86_64-efi/ipxe.efi /mnt/EFI/BOOT/BOOTX64.EFI
+# sudo umount /mnt
+#
 
 :start
 dhcp && goto boot
@@ -8,7 +26,6 @@ goto start
 
 
 :boot
-dhcp
 chain http://192.168.0.209:8000/stage2.ipxe
 boot || goto boot_error
 
