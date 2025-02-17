@@ -27,7 +27,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
 4. Run build
     ```shell
     export TOOLCHAIN_ARCH=amd64
-    for AMD64_SITE in "27K51EA#A2Q" "B2G18EC#ABA" "C3C58ES#AKD" "D4H65EC#AKD" "DELLCS24SC" "DigitalOceanDroplet" "H5E56ET#ABU"; do
+    for AMD64_SITE in "27K51EA#A2Q" "B2G18EC#ABA" "C3C58ES#AKD" "D4H65EC#AKD" "DELLCS24SC" "DigitalOceanDroplet" "H5E56ET#ABU" "tw04"; do
         docker volume create "osfordev-preboot-${AMD64_SITE//#/X}-cache"
         docker run \
             --platform linux/amd64 \
