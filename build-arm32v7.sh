@@ -73,7 +73,7 @@ fi
 rm -f "${KBUILD_OUTPUT}/.config"
 ln -s "${KERNEL_CONFIG_FILE}" "${KBUILD_OUTPUT}/.config"
 
-make oldconfig
+yes "" | make oldconfig
 if [ "${MENUCONFIG}" == "yes" ]; then
     if tty >/dev/null; then
         make menuconfig
@@ -81,6 +81,11 @@ if [ "${MENUCONFIG}" == "yes" ]; then
         echo "Skipping 'make menuconfig' due to non-interactive terminal."
     fi
 fi
+
+echo "=== Enable kexec diff ==="
+diff "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak" || true
+echo "========================="
+
 make "-j$(nproc)"
 INSTALL_MOD_PATH="/cache/${KERNEL_SLUG}/modules" make modules_install
 

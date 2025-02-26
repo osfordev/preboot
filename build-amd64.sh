@@ -58,26 +58,35 @@ fi
 rm -f "${KBUILD_OUTPUT}/.config"
 ln -s "${KERNEL_CONFIG_FILE}" "${KBUILD_OUTPUT}/.config"
 
-make oldconfig
+cp -a "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak"
+
+KEXEC_CONFIG_SCRIPT_BASE="/preboot/kexec-config/kexec-config.sh"
+KEXEC_CONFIG_SCRIPT_SITE="/preboot/kexec-config/kexec-config-${SITE}.sh"
+if [ -x "${KEXEC_CONFIG_SCRIPT_BASE}" -o -x "${KEXEC_CONFIG_SCRIPT}" ]; then
+
+    if [ -x "${KEXEC_CONFIG_SCRIPT_BASE}" ]; then
+        echo "Configure kernel by execute config script ${KEXEC_CONFIG_SCRIPT_BASE} ..."
+        KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE}" ${KEXEC_CONFIG_SCRIPT_BASE}
+    fi
+
+    if [ -x "${KEXEC_CONFIG_SCRIPT_SITE}" ]; then
+        echo "Configure kernel by execute config script ${KEXEC_CONFIG_SCRIPT_SITE} ..."
+        KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE}" ${KEXEC_CONFIG_SCRIPT_SITE}
+    fi
+else
+    echo "Configure kernel by enable kexec manually (no scripts ${KEXEC_CONFIG_SCRIPT_BASE} and ${KEXEC_CONFIG_SCRIPT_SITE}) ..."
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"
+fi
+
+yes "" | make oldconfig
 if [ "${MENUCONFIG}" == "yes" ]; then
     if tty >/dev/null; then
         make menuconfig
     else
         echo "Skipping 'make menuconfig' due to non-interactive terminal."
     fi
-fi
-
-cp -a "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak"
-
-KEXEC_CONFIG_SCRIPT="/preboot/kexec-config/kexec-config-${SITE}.sh"
-if [ -x "${KEXEC_CONFIG_SCRIPT}" ]; then
-    echo "Enable kexec by execute config script ${KEXEC_CONFIG_SCRIPT} ..."
-    KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE}" ${KEXEC_CONFIG_SCRIPT}
-else
-    echo "Enable kexec ..."
-    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
-    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
-    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"
 fi
 
 echo "=== Enable kexec diff ==="

@@ -21,8 +21,8 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     # pull latest tag
     docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     # or latest commit in toolchain branch
-    docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}/snapshot:latest
-    docker tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}/snapshot:latest ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
+    docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173
+    docker tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173 ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     ```
 4. Run build
     ```shell
@@ -37,7 +37,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
             --volume "osfordev-preboot-${AMD64_SITE//#/X}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
-            ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173
+            ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     done
     ```
 
@@ -53,7 +53,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
             --volume "osfordev-preboot-${ARM32V7_SITE//#/X}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
-            ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173
+            ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     done
     ```
 
@@ -69,7 +69,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
             --volume "osfordev-preboot-${I686_SITE//#/X}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
-            ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173
+            ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     done
     ```
 
