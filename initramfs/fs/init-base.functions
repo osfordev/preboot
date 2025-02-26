@@ -28,26 +28,17 @@ list_boot_device_candidates() {
     info "Checking for custom boot configuration ..." >&2
     CANDIDATE_DEVICES=""
     for BLOCK_DEV in $(cd /sys/class/block/ && ls -1); do
-        # It does not work for vda devices on Digital Ocean
-        # if [ ! -f "/sys/class/block/${BLOCK_DEV}/device/model" ]; then
-        #     continue
-        # fi
-
-        # Try to filter non-disk block device (like partitions, )
-        if [ ! -f "/sys/class/block/${BLOCK_DEV}/diskseq" ]; then
-            # https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-block
-            # The /sys/block/<disk>/diskseq files reports the disk
-            # sequence number, which is a monotonically increasing
-            # number assigned to every drive.
-            # Some devices, like the loop device, refresh such number
-            # every time the backing file is changed.
-            # The value type is 64 bit unsigned.
+        # Try to filter non-partition block devices
+        if [ ! -f "/sys/class/block/${BLOCK_DEV}/partition" ]; then
+            # Look like this block device is not a partition
             continue
         fi
 
-        local BLOCK_DEV_MAJOR
-        BLOCK_DEV_MAJOR=$(stat -c "%t" "/dev/${BLOCK_DEV}")
-        case "${BLOCK_DEV_MAJOR}" in
+        PARTITION_DEV="/dev/${BLOCK_DEV}"
+
+        local PARTITION_DEV_MAJOR
+        PARTITION_DEV_MAJOR=$(stat -c "%t" "${PARTITION_DEV}")
+        case "${PARTITION_DEV_MAJOR}" in
             1)
                 # Skip RAM disks (like /dev/ramXX)
                 # https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
@@ -57,10 +48,9 @@ list_boot_device_candidates() {
                 ;;
         esac
 
-        PARTITION_DEV="/dev/${BLOCK_DEV}1"
         info "Examine device '${PARTITION_DEV}' ..." >&2
         PARTITION_TYPE=""
-        for INFO_PAIR in $(blkid "${PARTITION_DEV}" | cut -d: -f2); do
+        for INFO_PAIR in $(blkid "${PARTITION_DEV}" | cut -d: -f2 | xargs); do
             INFO_KEY="$(echo "${INFO_PAIR}" | cut -d= -f1)"
             if [ "${INFO_KEY}" == "TYPE" ]; then
                 PARTITION_TYPE="$(echo "${INFO_PAIR}" | cut -d= -f2)"
@@ -69,7 +59,7 @@ list_boot_device_candidates() {
         done
         debug "Partition type of '${PARTITION_DEV}' is '${PARTITION_TYPE}'" >&2
 
-        if [ "${PARTITION_TYPE}" == '"vfat"' -o "${PARTITION_TYPE}" ==  '"linux_raid_member"' ]; then
+        if [ "${PARTITION_TYPE}" == 'vfat' -o "${PARTITION_TYPE}" ==  'linux_raid_member' ]; then
             debug "Device '${PARTITION_DEV}' is candidate." >&2
             CANDIDATE_DEVICES="${CANDIDATE_DEVICES} ${PARTITION_DEV}"
         else
