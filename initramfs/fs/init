@@ -31,11 +31,17 @@ source /init-platform.functions
 
 # ln -s /proc/mounts /etc/mtab || fatal "Failure link /etc/mtab -> /proc/mounts"
 
-if ! /sbin/ip link show eth0 >/dev/null 2>&1; then 
-    warn "A network device 'eth0' is not found. Reboot in 5 seconds..."
-    sleep 5
-    reboot -f
-fi
+# 
+# PreBoot should not to reboot device without eth0.
+# Originally it was added for buggy-laptop C3C58ES#AKD
+# but now we trying to remove network stack from preboot at all
+# so this reboot, probably, may be implemented inside initramfs so on...
+#
+# if ! /sbin/ip link show eth0 >/dev/null 2>&1; then
+#     warn "A network device 'eth0' is not found. Reboot in 5 seconds..."
+#     sleep 5
+#     reboot -f
+# fi
 
 CUSTOM_VOLUME_GROUPS=""
 PREBOOT_CMDLINE=""
