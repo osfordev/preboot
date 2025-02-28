@@ -6,6 +6,8 @@ set -eu
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "EFI_RUNTIME_MAP"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "FB_VGA16"
+./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "FB_SIMPLE"
 
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BT"
