@@ -39,7 +39,7 @@ RUN \
 
 RUN \
   cd /opt && \
-  git clone --depth 1 --branch v2023.04 https://source.denx.de/u-boot/u-boot.git
+  git clone --depth 1 --branch v2025.10 https://source.denx.de/u-boot/u-boot.git
 
 RUN \
   eselect kernel set 1
