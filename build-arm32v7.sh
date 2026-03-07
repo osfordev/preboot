@@ -64,7 +64,7 @@ export KBUILD_OUTPUT="/cache/${KERNEL_SLUG}/kernel"
 emerge --sync osfordev
 
 
-KERNEL_CONFIG_FILE="/var/db/repos/osfordev/profiles/${SITE}/kernel.config"
+KERNEL_CONFIG_FILE="/var/db/repos/osfordev/profiles/${SITE}/config-${KERNEL_VERSION}-gentoo"
 if [ ! -f "${KERNEL_CONFIG_FILE}" ]; then
     echo "Wrong value '${SITE}' for the environment variable SITE. Kernel configuration was not found by path '${KERNEL_CONFIG_FILE}'. See https://github.com/osfordev/gentoo-overlay/tree/master/profiles for relevant values." >&2
     exit 1

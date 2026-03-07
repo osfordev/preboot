@@ -6,7 +6,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
 
 ## Quick Start
 
-0. Define vars
+1. Define vars
 
     ```shell
     #export TOOLCHAIN_ARCH=arm32v5
@@ -16,18 +16,22 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     export TOOLCHAIN_ARCH=amd64
     #export TOOLCHAIN_ARCH=i686
     ```
-2. Pull toolchain image
+
+1. Pull toolchain image
+
     ```shell
     # pull latest tag
     docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     # or latest commit in toolchain branch
-    docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173
-    docker tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:5.15.173 ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
+    docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:6.18.12
+    docker tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:6.18.12 ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     ```
-4. Run build
+
+1. Run build
+
     ```shell
     export TOOLCHAIN_ARCH=amd64
-    for AMD64_SITE in "27K51EA#A2Q" "B2G18EC#ABA" "C3C58ES#AKD" "D4H65EC#AKD" "DELLCS24SC" "DigitalOceanDroplet" "H5E56ET#ABU" "tw04"; do
+    for AMD64_SITE in "27K51EA#A2Q" "B2G18EC#ABA" "C3C58ES#AKD" "D4H65EC#AKD" "DELLCS24SC" "DigitalOceanDroplet" "H5E56ET#ABU" "tw00" "tw02" "tw04"; do
         docker volume create "osfordev-preboot-${AMD64_SITE//#/X}-cache"
         docker run \
             --platform linux/amd64 \
@@ -74,7 +78,8 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     ```
 
     Note: Container required --privileged flag to manipulate loop devices while creating disk image.
-4. Obtain result in `.build` directory
+
+1. Obtain result in `.build` directory
 
 ## What the image includes
 
