@@ -90,7 +90,7 @@ if [ "${MENUCONFIG}" == "yes" ]; then
 fi
 
 echo "=== Enable kexec diff ==="
-diff "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak" || true
+diff "${KERNEL_CONFIG_FILE}-bak" "${KERNEL_CONFIG_FILE}" || true
 echo "========================="
 
 make "-j$(nproc)"
