@@ -3,7 +3,7 @@ ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 
 
 # Target container with Gentoo Linux + necessary tools to build kernel and initramfs
-FROM --platform=linux/arm64/v8 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} as stage
+FROM --platform=linux/arm64/v8 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} AS stage
 
 RUN \
   emerge-webrsync && \
@@ -13,22 +13,27 @@ RUN \
   echo 'FEATURES="-ipc-sandbox -network-sandbox -pid-sandbox -sandbox -usersandbox"' >> /etc/portage/make.conf && \
   echo 'USE="-ipv6 -pam static static-libs -udev"' >> /etc/portage/make.conf && \
   mkdir --parents /etc/portage/repos.conf && \
-  echo '[osfordev]' >> /etc/portage/repos.conf/osfordev-repo.conf && \
-  echo 'location = /var/db/repos/osfordev' >> /etc/portage/repos.conf/osfordev-repo.conf && \
-  echo 'sync-type = git' >> /etc/portage/repos.conf/osfordev-repo.conf && \
-  echo 'sync-uri = https://github.com/osfordev/gentoo-overlay.git' >> /etc/portage/repos.conf/osfordev-repo.conf && \
-  echo 'sync-git-clone-extra-opts = --single-branch --branch master' >> /etc/portage/repos.conf/osfordev-repo.conf && \
-  echo 'auto-sync = yes' >> /etc/portage/repos.conf/osfordev-repo.conf && \
+  echo '[gentoo]' >> /etc/portage/repos.conf/default.conf && \
+  echo 'location = /var/db/repos/gentoo' >> /etc/portage/repos.conf/default.conf && \
+  echo 'priority = 0' >> /etc/portage/repos.conf/default.conf && \
+  echo 'eclass-overrides = osfordev' >> /etc/portage/repos.conf/default.conf && \
+  echo 'sync-type = webrsync' >> /etc/portage/repos.conf/default.conf && \
+  echo '[osfordev]' >> /etc/portage/repos.conf/osfordev.conf && \
+  echo 'location = /var/db/repos/osfordev' >> /etc/portage/repos.conf/osfordev.conf && \
+  echo 'priority = 50' >> /etc/portage/repos.conf/osfordev.conf && \
+  echo 'auto-sync = yes' >> /etc/portage/repos.conf/osfordev.conf && \
+  echo 'sync-type = zipfile' >> /etc/portage/repos.conf/osfordev.conf && \
+  echo 'sync-uri = https://osfordev.github.io/gentoo-overlay/latest.zip' >> /etc/portage/repos.conf/osfordev.conf && \
   rm -r /etc/portage/package.accept_keywords && \
   echo 'sys-apps/kexec-tools ~arm64' >> /etc/portage/package.accept_keywords && \
   rm --recursive /etc/portage/package.use && \
   echo 'sys-apps/busybox mdev -pam' >> /etc/portage/package.use && \
   echo 'sys-apps/util-linux -su' >> /etc/portage/package.use && \
-  echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use
+  echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use && \
+  emerge --sync
 
 RUN \
   emerge --quiet --oneshot \
-    dev-vcs/git \
     net-wireless/wireless-regdb \
     sys-apps/busybox \
     sys-apps/kexec-tools \

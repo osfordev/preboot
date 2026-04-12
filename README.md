@@ -46,16 +46,16 @@ Relevant tag names like a:
 
 | Kernel Version  | Docker Arch     | Git Tag Name                        | Docker Image                                        |
 |-----------------|-----------------|-------------------------------------|-----------------------------------------------------|
-| 5.15.80         | linux/amd64     | toolchain-5.15.80-amd64-YYYYMMDD    | ghcr.io/osfordev/preboot/toolchain/amd64:5.15.80    |
-| 5.15.80         | linux/arm/v7    | toolchain-5.15.80-arm32v7-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/arm32v7:5.15.80  |
-| 5.15.80         | linux/arm64/v8  | toolchain-5.15.80-amd64v8-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/amd64v8:5.15.80  |
-| 5.15.80         | linux/386       | toolchain-5.15.80-i686-YYYYMMDD     | ghcr.io/osfordev/preboot/toolchain/i686:5.15.80     |
+| 6.18.18         | linux/amd64     | toolchain-6.18.18-amd64-YYYYMMDD    | ghcr.io/osfordev/preboot/toolchain/amd64:6.18.18    |
+| 6.18.18         | linux/arm/v7    | toolchain-6.18.18-arm32v7-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/arm32v7:6.18.18  |
+| 6.18.18         | linux/arm64/v8  | toolchain-6.18.18-amd64v8-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/amd64v8:6.18.18  |
+| 6.18.18         | linux/386       | toolchain-6.18.18-i686-YYYYMMDD     | ghcr.io/osfordev/preboot/toolchain/i686:6.18.18     |
 
 ## Build Toolchain Locally
 
 ```shell
 #KERNEL_VERSION=5.10.138
-KERNEL_VERSION=6.12.41
+KERNEL_VERSION=6.18.18
 
 BUILD_ARCH=amd64
 #BUILD_ARCH=arm32v7
