@@ -23,8 +23,8 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     # pull latest tag
     docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     # or latest commit in toolchain branch
-    docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:6.18.12
-    docker tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:6.18.12 ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
+    docker pull ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:6.18.18
+    docker tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:6.18.18 ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
     ```
 
 1. Run build

@@ -19,3 +19,7 @@ fatal() {
     echo ".Entering rescue shell."
     exec /bin/busybox sh
 }
+
+resolve_kernel_file_name() {
+    echo -n "bzImage"
+}

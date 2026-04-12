@@ -139,9 +139,12 @@ fi
 
 #invite_to_shell 3
 
-info "Kernel args: panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}"
+KERNEL_IMAGE=$(resolve_kernel_file_name)
+info "Resolve kernel file name: ${KERNEL_IMAGE}"
+
+info "Kernel args: ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}"
 info "Loading kernel and initramfs into kexec ..."
-kexec --load /mnt/boot/vmlinuz --initrd=/mnt/boot/initramfs.cpio.gz --append="panic=10 net.ifnames=0 ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
+kexec --load /mnt/boot/${KERNEL_IMAGE} --initrd=/mnt/boot/initramfs.cpio.gz --append="${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
 
 info "Umounting 'system' logical volume ..."
 umount /mnt || fatal "Failure umount logical volume '/dev/${VGROOT}/system'"
@@ -155,5 +158,5 @@ else
 fi
 
 info "Run kexec ..."
-invite_to_shell 2
+# invite_to_shell 2
 kexec --exec || fatal "kexec: Unable to execute."

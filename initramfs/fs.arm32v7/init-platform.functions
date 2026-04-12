@@ -1,0 +1,25 @@
+#!/bin/sh
+
+debug() {
+    if [ -z "${QUIET}" -a -n "${DEBUG}" ]; then
+        echo "arm32v7 [D] ${1}"
+    fi
+}
+info() {
+    if [ -z "$QUIET" ]; then
+        echo "arm32v7 [I] $1"
+    fi
+}
+warn() {
+    echo "arm32v7 [W] $1"
+}
+fatal() {
+    echo "arm32v7 [!] FATAL ERROR: $1"
+    echo 1 > /proc/sys/kernel/printk
+    echo ".Entering rescue shell."
+    exec /bin/busybox sh
+}
+
+resolve_kernel_file_name() {
+    echo -n "zImage"
+}
