@@ -76,6 +76,8 @@ else
     echo "Configure kernel by enable kexec manually (no scripts ${KEXEC_CONFIG_SCRIPT_BASE} and ${KEXEC_CONFIG_SCRIPT_SITE}) ..."
     ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
     ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_FILE"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "KEXEC_JUMP"
     ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"
 fi
 
@@ -233,13 +235,13 @@ echo >> "${CPIO_LIST}"
 
 echo "# Modules" >> "${CPIO_LIST}"
 echo >> "${CPIO_LIST}"
-
+echo "dir /lib/modules/${KERNEL_SLUG}-${SITE} 755 0 0" >> "${CPIO_LIST}"
 if [ -d "/cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}" ]; then
     cd "/cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}"
     for n in $(find *); do
         echo "Adding module $n..."
-        [ -d $n ] && echo "dir /lib/modules/${KERNEL_SLUG}-${SITE}/$n 700 0 0" >> "${CPIO_LIST}"
-        [ -f $n ] && echo "file /lib/modules/${KERNEL_SLUG}-${SITE}/$n /cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}/$n 600 0 0" >> "${CPIO_LIST}"
+        [ -d $n ] && echo "dir /lib/modules/${KERNEL_SLUG}-${SITE}/$n 755 0 0" >> "${CPIO_LIST}"
+        [ -f $n ] && echo "file /lib/modules/${KERNEL_SLUG}-${SITE}/$n /cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}/$n 644 0 0" >> "${CPIO_LIST}"
     done
 fi
 
@@ -254,7 +256,7 @@ done
 
 cd "/usr/src/linux"
 
-echo "Generating initramfs file /cache/${KERNEL_SLUG}/boot/initramfs.cpio.gz ..."
+echo "Generating initramfs file /cache/${KERNEL_SLUG}/boot/initramfs.cpio ..."
 ./usr/gen_initramfs.sh -o "/cache/${KERNEL_SLUG}/boot/initramfs.cpio" "${CPIO_LIST}"
 cp -a "${CPIO_LIST}" "/cache/${KERNEL_SLUG}/boot/initramfs.cpio.list"
 
@@ -271,17 +273,16 @@ cp --verbose "System.map"                       "/preboot.build/boot/preboot-${S
 cp --verbose ".config"                          "/preboot.build/boot/preboot-${SITE}-config"
 cp --verbose "arch/${KERNEL_ARCH}/boot/bzImage" "/preboot.build/boot/preboot-${SITE}"
 
-# # Debugging
-
-# echo "Unpack final image into /preboot.build/initramfs.debug"
-# [ -d "/preboot.build/initramfs.debug" ] && rm -rf "/preboot.build/initramfs.debug"
-# mkdir -p "/preboot.build/initramfs.debug"
-# cd "/preboot.build/initramfs.debug"
-# zcat "/preboot.build/boot/initramfs.cpio.gz" | cpio --extract || /bin/busybox
-# echo "Chrooting..."
-# cat "${CPIO_LIST}" > /preboot.build/boot/initramfs.txt
-# # chroot . /bin/busybox sh -i
-# # /bin/busybox sh
+# Debugging
+if [ "${DEBUG}"  == "yes" ]; then
+    [ -d "/preboot.build/boot/preboot-${SITE}.debug" ] && rm --force --recursive "/preboot.build/boot/preboot-${SITE}.debug"
+    mkdir "/preboot.build/boot/preboot-${SITE}.debug"
+    cat "${CPIO_LIST}" > "/preboot.build/boot/preboot-${SITE}.debug/initramfs.txt"
+    mkdir "/preboot.build/boot/preboot-${SITE}.debug/initramfs"
+    (cd "/preboot.build/boot/preboot-${SITE}.debug/initramfs" && cat "/cache/${KERNEL_SLUG}/boot/initramfs.cpio" | cpio --extract) || /bin/busybox sh
+    echo "Chrooting..."
+    (cd "/preboot.build/boot/preboot-${SITE}.debug/initramfs" && chroot . /bin/busybox sh -i && /bin/busybox sh)
+fi
 
 #
 # Build disk image

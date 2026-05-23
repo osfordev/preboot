@@ -38,6 +38,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
             --privileged --rm --interactive --tty \
             --env SITE="${AMD64_SITE}" \
             --env MENUCONFIG=no \
+            --env DEBUG=no \
             --volume "osfordev-preboot-${AMD64_SITE//#/X}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
@@ -54,6 +55,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
             --privileged --rm --interactive --tty \
             --env SITE="${ARM32V7_SITE}" \
             --env MENUCONFIG=no \
+            --env DEBUG=no \
             --volume "osfordev-preboot-${ARM32V7_SITE//#/X}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
@@ -70,6 +72,7 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
             --privileged --rm --interactive --tty \
             --env SITE="${I686_SITE}" \
             --env MENUCONFIG=no \
+            --env DEBUG=no \
             --volume "osfordev-preboot-${I686_SITE//#/X}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \

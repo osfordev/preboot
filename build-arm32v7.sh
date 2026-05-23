@@ -63,8 +63,7 @@ export KBUILD_OUTPUT="/cache/${KERNEL_SLUG}/kernel"
 # Sync osfordev repository (overlay) to point kernel config
 emerge --sync osfordev
 
-
-KERNEL_CONFIG_FILE="/var/db/repos/osfordev/profiles/${SITE}/config-${KERNEL_VERSION}-gentoo"
+KERNEL_CONFIG_FILE="/var/db/repos/osfordev/profiles/${SITE}/config-${KERNEL_VERSION}-gentoo-${SITE}"
 if [ ! -f "${KERNEL_CONFIG_FILE}" ]; then
     echo "Wrong value '${SITE}' for the environment variable SITE. Kernel configuration was not found by path '${KERNEL_CONFIG_FILE}'. See https://github.com/osfordev/gentoo-overlay/tree/master/profiles for relevant values." >&2
     exit 1
@@ -72,6 +71,30 @@ fi
 
 rm -f "${KBUILD_OUTPUT}/.config"
 ln -s "${KERNEL_CONFIG_FILE}" "${KBUILD_OUTPUT}/.config"
+
+cp -a "${KERNEL_CONFIG_FILE}" "${KERNEL_CONFIG_FILE}-bak"
+
+KEXEC_CONFIG_SCRIPT_BASE="/preboot/kexec-config/kexec-config.sh"
+KEXEC_CONFIG_SCRIPT_SITE="/preboot/kexec-config/kexec-config-${SITE}.sh"
+if [ -x "${KEXEC_CONFIG_SCRIPT_BASE}" -o -x "${KEXEC_CONFIG_SCRIPT}" ]; then
+
+    if [ -x "${KEXEC_CONFIG_SCRIPT_BASE}" ]; then
+        echo "Configure kernel by execute config script ${KEXEC_CONFIG_SCRIPT_BASE} ..."
+        KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE}" ${KEXEC_CONFIG_SCRIPT_BASE}
+    fi
+
+    if [ -x "${KEXEC_CONFIG_SCRIPT_SITE}" ]; then
+        echo "Configure kernel by execute config script ${KEXEC_CONFIG_SCRIPT_SITE} ..."
+        KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE}" ${KEXEC_CONFIG_SCRIPT_SITE}
+    fi
+else
+    echo "Configure kernel by enable kexec manually (no scripts ${KEXEC_CONFIG_SCRIPT_BASE} and ${KEXEC_CONFIG_SCRIPT_SITE}) ..."
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_FILE"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "KEXEC_JUMP"
+    ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "BLK_DEV_LOOP"
+fi
 
 yes "" | make oldconfig
 if [ "${MENUCONFIG}" == "yes" ]; then
@@ -194,12 +217,6 @@ echo "file /etc/mdadm.conf /cache/${KERNEL_SLUG}/initramfs/etc/mdadm.conf 644 0 
 # echo "slink /bin/udevd /bin/udevadm 755 0 0" >> "${CPIO_LIST}"
 
 case "${KERNEL_ARCH}" in
-    x86_64)
-        ELF_IGNORE="linux-vdso"
-        ;;
-    x86)
-        ELF_IGNORE="linux-gate"
-        ;;
     arm)
         ELF_IGNORE="linux-unused-stub"
         ;;
@@ -270,13 +287,13 @@ echo >> "${CPIO_LIST}"
 
 echo "# Modules" >> "${CPIO_LIST}"
 echo >> "${CPIO_LIST}"
-
+echo "dir /lib/modules/${KERNEL_SLUG}-${SITE} 755 0 0" >> "${CPIO_LIST}"
 if [ -d "/cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}" ]; then
     cd "/cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}"
     for n in $(find *); do
         echo "Adding module $n..."
-        [ -d $n ] && echo "dir /lib/modules/${KERNEL_SLUG}-${SITE}/$n 700 0 0" >> "${CPIO_LIST}"
-        [ -f $n ] && echo "file /lib/modules/${KERNEL_SLUG}-${SITE}/$n /cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}/$n 600 0 0" >> "${CPIO_LIST}"
+        [ -d $n ] && echo "dir /lib/modules/${KERNEL_SLUG}-${SITE}/$n 755 0 0" >> "${CPIO_LIST}"
+        [ -f $n ] && echo "file /lib/modules/${KERNEL_SLUG}-${SITE}/$n /cache/${KERNEL_SLUG}/modules/lib/modules/${KERNEL_SLUG}-${SITE}/$n 644 0 0" >> "${CPIO_LIST}"
     done
 fi
 
@@ -291,13 +308,12 @@ done
 
 cd "/usr/src/linux"
 
-[ ! -d /preboot.build/boot ] && mkdir /preboot.build/boot
-echo "Generating initramfs file /preboot.build/boot/initramfs.cpio.gz..."
-./usr/gen_initramfs.sh -o "/preboot.build/boot/initramfs.cpio" "${CPIO_LIST}"
-cp -a "${CPIO_LIST}" /preboot.build/boot/initramfs.cpio.list
+echo "Generating initramfs file /cache/${KERNEL_SLUG}/boot/initramfs.cpio ..."
+./usr/gen_initramfs.sh -o "/cache/${KERNEL_SLUG}/boot/initramfs.cpio" "${CPIO_LIST}"
+cp -a "${CPIO_LIST}" "/cache/${KERNEL_SLUG}/boot/initramfs.cpio.list"
 
 make \
-    CONFIG_INITRAMFS_SOURCE="/preboot.build/boot/initramfs.cpio" \
+    CONFIG_INITRAMFS_SOURCE="/cache/${KERNEL_SLUG}/boot/initramfs.cpio" \
     CONFIG_INITRAMFS_ROOT_UID="0" \
     CONFIG_INITRAMFS_ROOT_GID="0" \
     CONFIG_INITRAMFS_COMPRESSION_NONE="y" \
@@ -309,17 +325,16 @@ cp --verbose "System.map"                       "/preboot.build/boot/preboot-${S
 cp --verbose ".config"                          "/preboot.build/boot/preboot-${SITE}-config"
 cp --verbose "arch/${KERNEL_ARCH}/boot/bzImage" "/preboot.build/boot/preboot-${SITE}"
 
-# # Debugging
-
-# echo "Unpack final image into /preboot.build/initramfs.debug"
-# [ -d "/preboot.build/initramfs.debug" ] && rm -rf "/preboot.build/initramfs.debug"
-# mkdir -p "/preboot.build/initramfs.debug"
-# cd "/preboot.build/initramfs.debug"
-# zcat "/preboot.build/boot/initramfs.cpio.gz" | cpio --extract || /bin/busybox
-# echo "Chrooting..."
-# cat "${CPIO_LIST}" > /preboot.build/boot/initramfs.txt
-# # chroot . /bin/busybox sh -i
-# # /bin/busybox sh
+# Debugging
+if [ "${DEBUG}"  == "yes" ]; then
+    [ -d "/preboot.build/boot/preboot-${SITE}.debug" ] && rm --force --recursive "/preboot.build/boot/preboot-${SITE}.debug"
+    mkdir "/preboot.build/boot/preboot-${SITE}.debug"
+    cat "${CPIO_LIST}" > "/preboot.build/boot/preboot-${SITE}.debug/initramfs.txt"
+    mkdir "/preboot.build/boot/preboot-${SITE}.debug/initramfs"
+    (cd "/preboot.build/boot/preboot-${SITE}.debug/initramfs" && cat "/cache/${KERNEL_SLUG}/boot/initramfs.cpio" | cpio --extract) || /bin/busybox sh
+    echo "Chrooting..."
+    (cd "/preboot.build/boot/preboot-${SITE}.debug/initramfs" && chroot . /bin/busybox sh -i && /bin/busybox sh)
+fi
 
 #
 # Build disk image

@@ -8,6 +8,7 @@ set -eu
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "EFI_STUB"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_CORE"
+./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "KEXEC_FILE"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --disable "KEXEC_JUMP"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "FB_VGA16"
 ./scripts/config --file "${KERNEL_CONFIG_FILE}" --enable "FB_SIMPLE"

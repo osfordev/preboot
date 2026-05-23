@@ -31,17 +31,7 @@ source /init-platform.functions
 
 # ln -s /proc/mounts /etc/mtab || fatal "Failure link /etc/mtab -> /proc/mounts"
 
-# 
-# PreBoot should not to reboot device without eth0.
-# Originally it was added for buggy-laptop C3C58ES#AKD
-# but now we trying to remove network stack from preboot at all
-# so this reboot, probably, may be implemented inside initramfs so on...
-#
-# if ! /sbin/ip link show eth0 >/dev/null 2>&1; then
-#     warn "A network device 'eth0' is not found. Reboot in 5 seconds..."
-#     sleep 5
-#     reboot -f
-# fi
+# invite_to_shell 3
 
 CUSTOM_VOLUME_GROUPS=""
 PREBOOT_CMDLINE=""
@@ -83,7 +73,7 @@ for BOOT_CANDIDATE_DEV in ${BOOT_CANDIDATE_DEVS}; do
     # first boot device, and ignore next boot device candidates
     # (in case when few boot devices do have osfordev-vgs-assembler.sh file)
     if [ -z "${CUSTOM_VOLUME_GROUPS}" -a -f /mnt/osfordev-vgs-assembler.sh -a ! -x /tmp/osfordev-vgs-assembler.sh ]; then
-        info "Script /osfordev-vgs-assembler.sh found on ${BOOT_CANDIDATE_DEV} ..."
+        info "Script /osfordev-vgs-assembler.sh found on ${BOOT_CANDIDATE_DEV} (copied to /tmp) ..."
         cp -a /mnt/osfordev-vgs-assembler.sh /tmp/osfordev-vgs-assembler.sh
     fi
 
@@ -144,7 +134,7 @@ info "Resolve kernel file name: ${KERNEL_IMAGE}"
 
 info "Kernel args: ${PREBOOT_CMDLINE} ${BOOT_CMDLINE}"
 info "Loading kernel and initramfs into kexec ..."
-kexec --load /mnt/boot/${KERNEL_IMAGE} --initrd=/mnt/boot/initramfs.cpio.gz --append="${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
+kexec --kexec-file-syscall --load /mnt/boot/${KERNEL_IMAGE} --initrd=/mnt/boot/initramfs.cpio.gz --command-line="${PREBOOT_CMDLINE} ${BOOT_CMDLINE}" || fatal "kexec: Unable to load kernel/initrams."
 
 info "Umounting 'system' logical volume ..."
 umount /mnt || fatal "Failure umount logical volume '/dev/${VGROOT}/system'"
