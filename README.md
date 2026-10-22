@@ -31,15 +31,15 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
 
     ```shell
     export TOOLCHAIN_ARCH=amd64
-    for AMD64_SITE in "27K51EA#A2Q" "B2G18EC#ABA" "C3C58ES#AKD" "D4H65EC#AKD" "DELLCS24SC" "DigitalOceanDroplet" "H5E56ET#ABU" "tw00" "tw02" "tw04"; do
-        docker volume create "osfordev-preboot-${AMD64_SITE//#/X}-cache"
+    for AMD64_SITE in "27K51EA#A2Q" "B2G18EC#ABA" "C3C58ES#AKD" "D4H65EC#AKD" "DELLCS24SC" "DigitalOceanDroplet" "H5E56ET#ABU" "V5_131_0742" "tw00" "tw02" "tw04"; do
+        docker volume create "osfordev-preboot-${AMD64_SITE//#/X}-${TOOLCHAIN_ARCH}-cache"
         docker run \
             --platform linux/amd64 \
             --privileged --rm --interactive --tty \
             --env SITE="${AMD64_SITE}" \
             --env MENUCONFIG=no \
             --env DEBUG=no \
-            --volume "osfordev-preboot-${AMD64_SITE//#/X}-cache":/cache \
+            --volume "osfordev-preboot-${AMD64_SITE//#/X}-${TOOLCHAIN_ARCH}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
             ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
@@ -49,14 +49,14 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     ```shell
     export TOOLCHAIN_ARCH=arm32v7
     for ARM32V7_SITE in "Cubietruck"; do
-        docker volume create "osfordev-preboot-${ARM32V7_SITE//#/X}-cache"
+        docker volume create "osfordev-preboot-${ARM32V7_SITE//#/X}-${TOOLCHAIN_ARCH}-cache"
         docker run \
             --platform linux/amd32/v7 \
             --privileged --rm --interactive --tty \
             --env SITE="${ARM32V7_SITE}" \
             --env MENUCONFIG=no \
             --env DEBUG=no \
-            --volume "osfordev-preboot-${ARM32V7_SITE//#/X}-cache":/cache \
+            --volume "osfordev-preboot-${ARM32V7_SITE//#/X}-${TOOLCHAIN_ARCH}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
             ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest
@@ -66,14 +66,14 @@ Builder is a script that build preboot artifacts like kernel, initrd, etc. The s
     ```shell
     export TOOLCHAIN_ARCH=i686
     for I686_SITE in "ASRockPV530"; do
-        docker volume create "osfordev-preboot-${I686_SITE//#/X}-cache"
+        docker volume create "osfordev-preboot-${I686_SITE//#/X}-${TOOLCHAIN_ARCH}-cache"
         docker run \
             --platform linux/386 \
             --privileged --rm --interactive --tty \
             --env SITE="${I686_SITE}" \
             --env MENUCONFIG=no \
             --env DEBUG=no \
-            --volume "osfordev-preboot-${I686_SITE//#/X}-cache":/cache \
+            --volume "osfordev-preboot-${I686_SITE//#/X}-${TOOLCHAIN_ARCH}-cache":/cache \
             --mount type=bind,source="$(pwd)",target=/preboot \
             --volume $(pwd)/.build:/preboot.build \
             ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest

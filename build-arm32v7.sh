@@ -27,14 +27,17 @@ fi
 case "${DOCKER_ARCH}" in
     linux/arm/v5)
         KERNEL_ARCH=arm
+        GENTOO_PROFILE_ARCH=arm
         OSFORDEV_ARCH=arm32v5
         ;;
     linux/arm/v6)
         KERNEL_ARCH=arm
+        GENTOO_PROFILE_ARCH=arm
         OSFORDEV_ARCH=arm32v6
         ;;
     linux/arm/v7)
         KERNEL_ARCH=arm
+        GENTOO_PROFILE_ARCH=arm
         OSFORDEV_ARCH=arm32v7
         ;;
     *)
@@ -63,11 +66,21 @@ export KBUILD_OUTPUT="/cache/${KERNEL_SLUG}/kernel"
 # Sync osfordev repository (overlay) to point kernel config
 emerge --sync osfordev
 
-KERNEL_CONFIG_FILE="/var/db/repos/osfordev/profiles/${SITE}/config-${KERNEL_VERSION}-gentoo-${SITE}"
-if [ ! -f "${KERNEL_CONFIG_FILE}" ]; then
-    echo "Wrong value '${SITE}' for the environment variable SITE. Kernel configuration was not found by path '${KERNEL_CONFIG_FILE}'. See https://github.com/osfordev/gentoo-overlay/tree/master/profiles for relevant values." >&2
+KERNEL_CONFIG_FILE_PROBE1="/var/db/repos/osfordev/profiles/${SITE}/config-${KERNEL_VERSION}-gentoo-${SITE}"
+KERNEL_CONFIG_FILE_PROBE2="/var/db/repos/osfordev/profiles/${SITE}/${OSFORDEV_ARCH}/config-${KERNEL_VERSION}-gentoo-${SITE}"
+KERNEL_CONFIG_FILE=""
+if [ -f "${KERNEL_CONFIG_FILE_PROBE1}" ]; then
+    KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE_PROBE1}"
+fi
+if [ -f "${KERNEL_CONFIG_FILE_PROBE2}" ]; then
+    KERNEL_CONFIG_FILE="${KERNEL_CONFIG_FILE_PROBE2}"
+fi
+if [ -z "${KERNEL_CONFIG_FILE}" ]; then
+    echo "Kernel configuration was not found by path nor '${KERNEL_CONFIG_FILE_PROBE2}' nor '${KERNEL_CONFIG_FILE_PROBE1}'. See https://github.com/osfordev/gentoo-overlay/tree/master/profiles for relevant values." >&2
     exit 1
 fi
+unset KERNEL_CONFIG_FILE_PROBE1
+unset KERNEL_CONFIG_FILE_PROBE2
 
 rm -f "${KBUILD_OUTPUT}/.config"
 ln -s "${KERNEL_CONFIG_FILE}" "${KBUILD_OUTPUT}/.config"
