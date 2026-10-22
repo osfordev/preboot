@@ -1,3 +1,7 @@
+# syntax=docker/dockerfile:1
+# check=skip=FromPlatformFlagConstDisallowed
+
+
 # https://hub.docker.com/r/theanurin/gentoo-sources-bundle
 ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 
@@ -6,7 +10,6 @@ ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 FROM --platform=linux/386 theanurin/gentoo-sources-bundle:${GENTOO_SOURCES_BUNDLE_IMAGE_TAG} AS stage
 
 RUN \
-  emerge-webrsync && \
   echo >> /etc/portage/make.conf && \
   echo '# OS For Dev Preboot toolchain' >> /etc/portage/make.conf && \
   echo 'ACCEPT_LICENSE="intel-ucode linux-fw-redistributable no-source-code"' >> /etc/portage/make.conf && \
@@ -29,7 +32,7 @@ RUN \
   echo 'sys-apps/util-linux -su' >> /etc/portage/package.use && \
   echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use && \
   echo 'sys-firmware/ipxe efi lkrn -qemu undi usb' >> /etc/portage/package.use && \
-  emerge --sync
+  emerge --quiet --sync 0</dev/null 2>&1
 
 RUN \
   emerge --quiet --oneshot \

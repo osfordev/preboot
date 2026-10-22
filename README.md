@@ -20,6 +20,7 @@ Toolchain is a Docker image that includes all necessary sources/tools to be able
 1. Obtain an image
 
     - Build toolchain image
+
         ```shell
         docker build --file docker/${TOOLCHAIN_ARCH}/Dockerfile --tag ghcr.io/osfordev/preboot/toolchain/${TOOLCHAIN_ARCH}:latest .
         ```
@@ -46,16 +47,16 @@ Relevant tag names like a:
 
 | Kernel Version  | Docker Arch     | Git Tag Name                        | Docker Image                                        |
 |-----------------|-----------------|-------------------------------------|-----------------------------------------------------|
-| 6.18.18         | linux/amd64     | toolchain-6.18.18-amd64-YYYYMMDD    | ghcr.io/osfordev/preboot/toolchain/amd64:6.18.18    |
-| 6.18.18         | linux/arm/v7    | toolchain-6.18.18-arm32v7-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/arm32v7:6.18.18  |
-| 6.18.18         | linux/arm64/v8  | toolchain-6.18.18-amd64v8-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/amd64v8:6.18.18  |
-| 6.18.18         | linux/386       | toolchain-6.18.18-i686-YYYYMMDD     | ghcr.io/osfordev/preboot/toolchain/i686:6.18.18     |
+| 6.18.52         | linux/amd64     | toolchain-6.18.52-amd64-YYYYMMDD    | ghcr.io/osfordev/preboot/toolchain/amd64:6.18.52    |
+| 6.18.52         | linux/arm/v7    | toolchain-6.18.52-arm32v7-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/arm32v7:6.18.52  |
+| 6.18.52         | linux/arm64/v8  | toolchain-6.18.52-amd64v8-YYYYMMDD  | ghcr.io/osfordev/preboot/toolchain/amd64v8:6.18.52  |
+| 6.18.52         | linux/386       | toolchain-6.18.52-i686-YYYYMMDD     | ghcr.io/osfordev/preboot/toolchain/i686:6.18.52     |
 
 ## Build Toolchain Locally
 
 ```shell
 #KERNEL_VERSION=5.10.138
-KERNEL_VERSION=6.18.18
+KERNEL_VERSION=6.18.52
 
 BUILD_ARCH=amd64
 #BUILD_ARCH=arm32v7
@@ -63,6 +64,7 @@ BUILD_ARCH=amd64
 #BUILD_ARCH=i686
 
 docker build \
+  --progress=plain \
   --build-arg GENTOO_SOURCES_BUNDLE_IMAGE_TAG="${KERNEL_VERSION}" \
   --tag ghcr.io/osfordev/preboot/toolchain/local \
   --file "docker/${BUILD_ARCH}/Dockerfile" \

@@ -1,3 +1,7 @@
+# syntax=docker/dockerfile:1
+# check=skip=FromPlatformFlagConstDisallowed
+
+
 # https://hub.docker.com/r/theanurin/gentoo-sources-bundle
 ARG GENTOO_SOURCES_BUNDLE_IMAGE_TAG=latest
 
@@ -28,7 +32,7 @@ RUN \
   echo 'sys-apps/util-linux -su' >> /etc/portage/package.use && \
   echo 'sys-fs/lvm2 lvm' >> /etc/portage/package.use && \
   echo 'sys-firmware/ipxe efi lkrn -qemu undi usb' >> /etc/portage/package.use && \
-  emerge --sync
+  emerge --quiet --sync 0</dev/null 2>&1
 
 RUN \
   emerge --quiet --oneshot \
